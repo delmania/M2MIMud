@@ -1,0 +1,65 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2005.01.06.14.01.48;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.41;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The GameDiscovery interface holds the reports function, by which a game
+ * session reports its existence to everyone.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: GameDiscovery.java,v 1.1 2004/06/10 17:00:41 rjw2183 Exp $
+ *
+ */
+ package m2mimud.communications;
+
+ 
+ public interface GameDiscovery
+ {
+	/**
+	 * Report the gaming session with its name, the multihandle, and
+	 * the number if units in in the game.
+	 */
+	public void report( SessionAd theSession );
+ }
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: GameDiscovery.java,v 1.3 2004/04/06 15:08:18 rjw2183 Exp rjw2183 $
+d14 1
+a14 1
+ 	/**
+d18 1
+a18 1
+	 public void report( SessionAd theSession );
+@

@@ -1,0 +1,16 @@
+LOOT: gbnHat { a red goblin hat } 100
+LOOT: shpWool { a piece of sheep's wool } 5
+SPELL: fireball { a scroll of Fireball } 100 50 5 1 4500 6
+SPELL: iceblast { a scroll of Ice Blast } 100 50 15 2 6000 12
+SPELL: litBlast { a scroll of Lightning Blast } 100 50 20 5 7000 20
+ARMOR: lthVest { a leather vest } 300 100 7 0  
+ARMOR: mlVest { a mail vest } 1100 500 10 0
+POTION: hlPot { a potion of minor healing } 50 15 80 0
+WEAPON: stf { an oak staff } 600 40 15 5700 4 1
+WEAPON: dgr { a dagger } 50 15 7 2000 3 1
+WEAPON: lngSwrd { a steel long sword } 100 75 12 3300 3 0
+WEAPON: grtSwrd { a steel great sword } 200 110 24 5700 4 0
+ARMOR: rbe { a cloth robe } 100 50 7 1
+MOB: 0 { baby goblin } 20 0 2800 2 gbnHat 2 
+MOB: 1 { sheep } 30 20 4000 0 shpWool 100
+MOB: 2 { goblin } 50 35 3300 10 gbnHat 10

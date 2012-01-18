@@ -1,0 +1,1224 @@
+<HTML>
+<HEAD>
+<TITLE>Package edu.rit.m2mi</TITLE>
+</HEAD>
+<BODY>
+
+Package edu.rit.m2mi
+is the API for Many-to-Many Invocation (M2MI).
+For more in-depth information about M2MI,
+see [<A HREF="#KB02">KB02</A>].
+
+<P>
+<A HREF="#concepts">Section 1</A>
+briefly introduces the concepts of M2MI.
+<A HREF="#writing">Section 2</A>
+describes how to write code
+using the M2MI Library.
+<A HREF="#configuring">Section 3</A>
+describes how to configure the M2MI Layer.
+<A HREF="#examples">Section 4</A>
+introduces several examples
+of M2MI-based applications
+that are included with the M2MI library.
+<A HREF="#architecture">Section 5</A>
+describes the architecture of M2MI.
+
+
+<P>
+<HR>
+<H2>Table of Contents</H2>
+
+1. <A HREF="#concepts">M2MI Concepts</A>
+<BR>
+2. <A HREF="#writing">Working with the M2MI Library</A>
+<BR>
+3. <A HREF="#configuring">Configuring the M2MI Layer</A>
+<BR>
+4. <A HREF="#examples">M2MI Examples</A>
+<BR>
+5. <A HREF="#architecture">M2MI Architecture</A>
+<BR>
+6. <A HREF="#references">References</A>
+
+<P>
+<HR>
+<A NAME="concepts"><H2>1. M2MI Concepts</H2></A>
+
+<P>
+Remote method invocation (RMI) [<A HREF="#WRW96">WRW96</A>]
+can be viewed as
+an object oriented abstraction
+of point-to-point communication:
+what looks like a method call
+is in fact a message sent
+and a response sent back.
+In the same way,
+M2MI can be viewed as
+an object oriented abstraction
+of broadcast communication.
+
+<P>
+<H3>1.1. Handles</H3>
+
+<P>
+M2MI lets an application invoke a method
+declared in an interface.
+To do so,
+the application needs
+some kind of "reference"
+upon which to perform the invocation.
+In M2MI, a reference is called a <EM>handle,</EM>
+and there are three varieties,
+omnihandles, unihandles, and multihandles.
+
+<P>
+<H3>1.2. Omnihandles</H3>
+
+<P>
+<CENTER>
+<IMG SRC="doc-files/Fig1.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 1: An omnihandle</B></FONT>
+</CENTER>
+<P>
+An <EM>omnihandle</EM> for an interface
+stands for "every object out there
+that implements this interface."
+An application can ask the M2MI Layer
+to create an omnihandle for a certain interface <I>X</I>,
+called the omnihandle's <EM>target interface</EM>.
+Figure 1 depicts an omnihandle for interface <TT>Foo</TT>;
+the omnihandle is named <TT>allFoos</TT>.
+It is created by code like this:
+<PRE>
+Foo allFoos = (Foo) M2MI.getOmnihandle (Foo.class);</PRE>
+<P>
+<CENTER>
+<IMG SRC="doc-files/Fig2.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 2: Invoking a method on an omnihandle</B></FONT>
+</CENTER>
+<P>
+Once an omnihandle is created,
+calling method <I>Y</I> on the omnihandle for interface <I>X</I> means,
+"Every object out there that implements interface <I>X</I>,
+perform method <I>Y</I>."
+The method is performed by whichever objects
+implementing interface <I>X</I>
+exist at the time the method is <EM>invoked</EM> on the omnihandle.
+Thus, different objects could respond to an omnihandle invocation
+at different times.
+Figure 2 shows what happens
+when the statement <TT>allFoos.y();</TT> is executed.
+Three objects implementing interface <TT>Foo</TT>,
+objects <I>A</I>, <I>B</I>, and <I>D</I>,
+happen to be in existence at that time;
+so all three objects perform method <TT>y()</TT>.
+<P>
+The target objects invoked by an M2MI method call
+need not reside in the same process
+as the calling object.
+The target objects can reside
+in other processes and/or other devices.
+As long as the target objects
+are in range to receive a broadcast
+from the calling object over the network,
+the M2MI Layer will find the target objects
+and perform a <EM>remote</EM> method invocation
+on each one.
+(M2MI's remote method invocation does not, however,
+use the same mechanism as Java RMI.)
+
+<P>
+<H3>1.3. Exporting Objects</H3>
+
+<P>
+To receive invocations on a certain interface <I>X</I>,
+an application creates an object
+that implements interface <I>X</I>
+and <EM>exports</EM> the object to the M2MI Layer.
+Thereafter,
+the M2MI Layer will invoke that object's method <I>Y</I>
+whenever anyone calls method <I>Y</I>
+on an omnihandle for interface <I>X</I>.
+An object is exported with code like this:
+<PRE>
+M2MI.export (b, Foo.class);</PRE>
+<P>
+In the above line of code,
+<TT>b</TT> is the object being exported,
+and <TT>Foo.class</TT> is the class of the target interface
+through which M2MI invocations
+will come to the object.
+We say the object is "exported as type <TT>Foo</TT>."
+M2MI also lets an object
+be exported multiple times with multiple target interfaces
+(provided the object implements all those interfaces).
+<P>
+Once exported,
+an object stays exported
+until explicitly unexported with code like this:
+<PRE>
+M2MI.unexport (b);</PRE>
+<P>
+In other words, M2MI does not do
+distributed garbage collection (DGC).
+In many distributed collaborative applications,
+DGC is unwanted;
+an object that is exported by one device
+as part of a distributed application
+should remain exported
+even if there are no other devices
+invoking the object yet.
+In cases where DGC is needed,
+it can be provided by a leasing mechanism
+explicit in the interface.
+Omitting DGC simplifies M2MI.
+
+<P>
+<H3>1.4. Unihandles</H3>
+
+<P>
+<CENTER>
+<IMG SRC="doc-files/Fig3.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 3: A unihandle</B></FONT>
+</CENTER>
+<P>
+A <EM>unihandle</EM> for an interface
+stands for "one particular object out there
+that implements this interface."
+An application can export an object
+and have the M2MI Layer return a unihandle for that object.
+Unlike an omnihandle,
+a unihandle is bound to one particular object
+at the time the unihandle is created.
+Figure 3 depicts a unihandle for object <TT>b</TT>
+implementing interface <TT>Foo</TT>;
+the unihandle is named <TT>b_Foo</TT>.
+It is created by code like this:
+<PRE>
+Foo b_Foo = (Foo) M2MI.getUnihandle (b, Foo.class);</PRE>
+<P>
+<CENTER>
+<IMG SRC="doc-files/Fig4.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 4: Invoking a method on a unihandle</B></FONT>
+</CENTER>
+<P>
+Once a unihandle is created,
+calling method <I>Y</I> on the unihandle means,
+"The particular object out there associated with this unihandle,
+perform method <I>Y</I>."
+When the statement <TT>b_Foo.y();</TT> is executed,
+only object <TT>B</TT> performs the method,
+as shown in Figure 4.
+As with an omnihandle,
+the target object for a unihandle invocation
+need not reside in the same process or device
+as the calling object.
+
+<P>
+<H3>1.5. Multihandles</H3>
+
+<P>
+<CENTER>
+<IMG SRC="doc-files/Fig5.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 5: A multihandle</B></FONT>
+</CENTER>
+<P>
+A <EM>multihandle</EM> for an interface
+stands for "one particular set of objects out there
+that implement this interface."
+Unlike a unihandle which only refers to one object,
+a multihandle can refer to one or more than one object.
+But unlike an omnihandle
+which automatically refers to all objects
+that implement a certain target interface,
+a multihandle only refers to those objects
+that have been explicitly <EM>attached</EM> to the multihandle.
+Figure 5 depicts a multihandle
+implementing target interface <TT>Foo</TT>;
+the multihandle is named <TT>some_Foos</TT>,
+and it is attached to two objects, <TT>a</TT> and <TT>d</TT>.
+The multihandle is created and attached to the objects
+by code like this:
+<PRE>
+Foo someFoos = (Foo) M2MI.getMultihandle (Foo.class);
+((Multihandle) someFoos).attach (a);
+((Multihandle) someFoos).attach (d);</PRE>
+<P>
+<CENTER>
+<IMG SRC="doc-files/Fig6.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 6: Invoking a method on a multihandle</B></FONT>
+</CENTER>
+<P>
+Once a multihandle is created,
+calling method <I>Y</I> on the multihandle means,
+"The particular object or objects out there
+associated with this multihandle,
+perform method <I>Y</I>."
+When the statement <TT>someFoos.y();</TT> is executed,
+objects <TT>a</TT> and <TT>d</TT> perform the method,
+but not objects <TT>b</TT> or <TT>c</TT>,
+as shown in Figure 6.
+As with an omnihandle or unihandle,
+the target objects for a multihandle invocation
+need not reside in the same process or device
+as the calling object or each other.
+<P>
+An object can also be detached from a multihandle
+by code like this:
+<PRE>
+((Multihandle) someFoos).detach (a);</PRE>
+
+<P>
+<H3>1.6. Characteristics of M2MI Invocations</H3>
+
+<P>
+Methods in interfaces invoked via M2MI
+can have arguments.
+When a value of a primitive type
+is passed as an M2MI method call argument,
+the argument is <EM>passed by copy</EM>
+as in regular Java;
+manipulations of the argument by the called object
+do not affect the original argument in the calling object.
+
+<P>
+When an object of a non-primitive type
+(including an array type)
+is passed as an M2MI method call argument, however,
+the manner in which the argument is passed
+depends on whether the called object
+is in the same process as the calling object.
+If the called object is in the same process
+as the calling object,
+the argument is <EM>passed by reference</EM>
+as in regular Java;
+manipulations of the argument in the called object
+do affect the original argument in the calling object.
+However, if the called object is not in the same process
+as the calling object,
+the argument is <EM>passed by copy;</EM>
+manipulations of the argument in the called object
+do <EM>not</EM> affect the original argument in the calling object.
+
+<P>
+Omnihandles, unihandles, and multihandles
+can be passed as M2MI method call arguments.
+A handle behaves the same way in the called object
+as it does in the calling object:
+whenever a method is invoked on a handle,
+the object or objects associated with the handle
+execute the method,
+no matter which processes the objects reside in.
+Thus, handles are similar to <EM>remote references</EM>
+in Java RMI.
+When a handle to an object
+is passed as a method call argument,
+the object is effectively <EM>passed by reference</EM>
+even if the called object
+is not in the same process as the calling object.
+Invocations performed by the method call recipient
+on the argument (handle)
+come back to the original object via M2MI
+and thus do affect the original object.
+
+<P>
+M2MI uses Java's object serialization
+to marshal the method call arguments on the calling side
+and unmarshal them again on the target side.
+Accordingly, every non-primitive object
+passed in as an M2MI method call argument
+must be serializable,
+or the invocation will fail.
+
+<P>
+While M2MI can pass objects as arguments like Java RMI,
+M2MI does not download the argument objects' classes
+to the destination as Java RMI does.
+With M2MI, the destination must already possess
+the argument objects' classes,
+or the invocation will fail.
+If a handle is passed as an argument
+in an M2MI method call, though,
+the destination need only possess
+the handle's target interface or interfaces.
+(The destination's M2MI Layer
+already possesses all the classes needed
+to implement the handles themselves.)
+
+<P>
+Although they can have arguments,
+methods in interfaces invoked via M2MI
+must be declared not to return a value
+and not to throw any exceptions.
+This is because with potentially more than one object
+performing the method,
+there is no single return value or exception to return or throw.
+
+<P>
+Since an M2MI method does not return anything,
+the caller cannot get any information back from the called object
+<EM>in the same method call.</EM>
+If the caller needs to get information back,
+the caller can send a reference to its own object
+by passing the object's unihandle
+as an argument to a method invoked on a handle.
+The called object or objects can then send information back
+by performing subsequent method invocations
+on the original caller's unihandle.
+This typically leads to a pattern of <EM>asynchronous</EM>
+method calls and callbacks
+in an M2MI-based application;
+in other words, an <EM>event-driven</EM> application.
+
+<P>
+For the same reason,
+an M2MI method invocation
+does not give any indication
+of whether the invocation was successfully communicated
+to the called objects.
+If an M2MI-based application needs an acknowledgment
+that a method call in fact reached the called objects,
+the called objects must do a separate method invocation
+back to the calling object.
+However, some applications can be designed
+not to need explicit method acknowledgments at all,
+achieving fault recovery by other means.
+
+<P>
+Finally, M2MI invocations are <EM>non-blocking.</EM>
+An M2MI method call returns immediately
+to the calling object
+without waiting for all the target objects
+to execute their methods.
+Later, when the method invocations are actually performed,
+every method in every target object is (potentially) executed
+concurrently by a separate thread.
+Therefore, every object exported via M2MI
+must be designed to be multiple thread safe.
+Furthermore, like any concurrent application,
+the overall M2MI-based application
+must be designed to avoid deadlocks,
+to work properly
+with any ordering of the concurrent method calls,
+and so on.
+
+<P>
+<HR>
+<A NAME="writing"><H2>2. Working With the M2MI Library</H2></A>
+
+<P>
+This section gives an overview
+of how to write M2MI-based applications
+using the M2MI Library.
+For more detailed information,
+refer to the documentation
+for the various classes and methods.
+
+<P>
+The key component is class <A HREF="M2MI.html">M2MI</A>,
+which encapsulates the M2MI Layer
+and provides static methods for working with M2MI.
+Also important are the <A HREF="Handle.html">Handle</A> class
+and its subclasses
+<A HREF="Omnihandle.html">Omnihandle</A>,
+<A HREF="Unihandle.html">Unihandle</A>, and
+<A HREF="Multihandle.html">Multihandle</A>.
+
+<P>
+<H3>2.1. Initialization</H3>
+
+<P>
+Before doing anything else in your application,
+you must initialize the M2MI Layer by calling the
+<A HREF="M2MI.html#initialize()"><TT>M2MI.initialize()</TT></A> method.
+At run time,
+this method gets the parameters it needs
+to configure the M2MI Layer
+from the M2MI properties file
+(see "<A HREF="#configuring">Configuring the M2MI Layer</A>").
+
+<P>
+<H3>2.2. Working With Omnihandles</H3>
+
+<P>
+To export an object so it can be invoked via an omnihandle, call
+<A HREF="M2MI.html#export(java.lang.Object, java.lang.Class)"><TT>M2MI.export(Object,Class)</TT></A>,
+specifying the object to be exported
+and the target interface with which to export it.
+
+<P>
+To export an object with multiple target interfaces, call
+<A HREF="M2MI.html#export(java.lang.Object, java.lang.Class)"><TT>M2MI.export(Object,Class)</TT></A>
+multiple times,
+specifying the object to be exported
+and a different target interface in each call.
+
+<P>
+To obtain an omnihandle for a certain target interface, call
+<A HREF="M2MI.html#getOmnihandle(java.lang.Class)"><TT>M2MI.getOmnihandle(Class)</TT></A>,
+specifying the target interface.
+An omnihandle is returned.
+
+<P>
+The returned omnihandle object extends classes
+<A HREF="Handle.html">Handle</A> and
+<A HREF="Omnihandle.html">Omnihandle</A>.
+The returned omnihandle object also implements
+the specified target interface.
+Typically, you cast the returned omnihandle
+to the target interface
+before storing the omnihandle.
+To invoke a certain target method
+on all exported objects
+that implement an omnihandle's target interface,
+call the target method on the omnihandle object.
+
+<P>
+An exported object can be unexported by calling
+<A HREF="M2MI.html#unexport(java.lang.Object)"><TT>M2MI.unexport(Object)</TT></A>,
+specifying the desired object.
+Afterwards, the object can no longer be invoked
+via <EM>any</EM> handle
+(omnihandle, unihandle, or multihandle)
+that formerly referred to that object.
+
+<P>
+An omnihandle implements the
+<A HREF="Omnihandle.html#equals(java.lang.Object)"><TT>equals()</TT></A> and
+<A HREF="Omnihandle.html#hashCode()"><TT>hashCode()</TT></A> methods.
+Thus, omnihandles can be used with the Java Collections Framework
+as set elements, map keys, and so on.
+
+<P>
+<H3>2.3. Working With Unihandles</H3>
+
+<P>
+To export an object so it can be invoked via a unihandle, call
+<A HREF="M2MI.html#getUnihandle(java.lang.Object, java.lang.Class)"><TT>M2MI.getUnihandle(Object,Class)</TT></A>,
+specifying the object to be exported
+and the target interface with which to export it.
+The object must in fact implement the target interface.
+A unihandle attached to that object is returned.
+
+<P>
+You can create multiple unihandles
+that refer to the same target object
+by calling
+<A HREF="M2MI.html#getUnihandle(java.lang.Object, java.lang.Class)"><TT>M2MI.getUnihandle(Object,Class)</TT></A>
+multiple times.
+Each call returns a different unihandle.
+Each unihandle implements just one target interface.
+If the target object implements multiple target interfaces,
+different unihandles for the same object
+can implement different target interfaces.
+
+<P>
+The returned unihandle object extends classes
+<A HREF="Handle.html">Handle</A> and
+<A HREF="Unihandle.html">Unihandle</A>.
+The returned unihandle object also implements
+the specified target interface.
+Typically, you cast the returned unihandle
+to the target interface
+before storing the unihandle.
+To invoke a certain target method
+on the exported object attached to a unihandle,
+call the target method on the unihandle object.
+
+<P>
+When an object is exported
+and attached to a unihandle
+for a certain target interface,
+the object can also be invoked
+via an omnihandle for that target interface.
+
+<P>
+A unihandle is always attached to at most one exported object.
+You can attach a unihandle to a different object by calling
+<A HREF="Unihandle.html#attach(java.lang.Object)"><TT>attach()</TT></A>
+on the unihandle object.
+However, you can only do this
+in the same process that originally created the unihandle.
+Afterwards, target method invocations
+performed on the unihandle object
+will be executed by the new target object
+instead of the old target object.
+The old target object remains exported
+and can still be invoked via any other handle
+that refers to the old target object.
+
+<P>
+You can also detach a unihandle from its target object by calling
+<A HREF="Unihandle.html#detach()"><TT>detach()</TT></A>
+on the unihandle object.
+Again, you can only do this
+in the same process that originally created the unihandle.
+Afterwards, target method invocations
+performed on the unihandle object
+will no longer be executed by any object.
+The old target object remains exported
+and can still be invoked via any other handle
+that refers to the old target object.
+Once a unihandle is detached,
+the unihandle becomes unusable
+and you cannot later attach another object to it.
+If you need to do that, use a multihandle instead.
+
+<P>
+A unihandle implements the
+<A HREF="Unihandle.html#equals(java.lang.Object)"><TT>equals()</TT></A> and
+<A HREF="Unihandle.html#hashCode()"><TT>hashCode()</TT></A> methods.
+Thus, unihandles can be used with the Java Collections Framework
+as set elements, map keys, and so on.
+
+<P>
+<H3>2.4. Working With Multihandles</H3>
+
+<P>
+To establish a set of specific target objects
+that are all invoked together,
+first create a multihandle,
+then attach the target objects to the multihandle.
+<P>
+To obtain a multihandle for a certain target interface, call
+<A HREF="M2MI.html#getMultihandle(java.lang.Class)"><TT>M2MI.getMultihandle(Class)</TT></A>,
+specifying the target interface.
+A multihandle is returned.
+
+<P>
+To export an object so it can be invoked via a multihandle, call
+<A HREF="Multihandle.html#attach(java.lang.Object)"><TT>attach(Object)</TT></A>
+on the multihandle,
+specifying the object to be attached.
+The object must in fact implement
+the multihandle's target interface.
+You can attach the same object to multiple multihandles.
+
+<P>
+The multihandle object extends classes
+<A HREF="Handle.html">Handle</A> and
+<A HREF="Multihandle.html">Multihandle</A>.
+The returned multihandle object also implements
+the specified target interface.
+Typically, you cast the returned multihandle
+to the target interface
+before storing the multihandle.
+To invoke a certain target method
+on every exported object attached to a multihandle,
+call the target method on the multihandle object.
+
+<P>
+A target object can be detached from a multihandle by calling
+<A HREF="Multihandle.html#detach(java.lang.Object)"><TT>detach(Object)</TT></A>
+on the multihandle,
+specifying the object to be detached.
+Afterwards, target method invocations
+performed on the multihandle object
+will no longer be executed by the target object.
+The target object remains exported
+and can still be invoked via any other handle
+that refers to the object.
+
+<P>
+A multihandle implements the
+<A HREF="Multihandle.html#equals(java.lang.Object)"><TT>equals()</TT></A> and
+<A HREF="Multihandle.html#hashCode()"><TT>hashCode()</TT></A> methods.
+Thus, multihandles can be used with the Java Collections Framework
+as set elements, map keys, and so on.
+
+<P>
+<H3>2.5. Exceptions During M2MI Invocations</H3>
+
+<P>
+While an M2MI-callable method
+cannot throw any checked exceptions (type Exception),
+it can throw unchecked exceptions (type RuntimeException or Error).
+Unchecked exceptions can be thrown in two contexts:
+when a calling object is invoking a target method on a handle,
+and when the M2MI Layer is invoking a target method
+on an actual target object.
+
+<P>
+When a calling object invokes a target method on a handle,
+the ultimate target objects are not invoked just yet,
+so no exceptions of any kind
+are thrown from the target objects to the calling object.
+However, the M2MI Layer may throw an unchecked exception
+to the calling object
+if it is unable to set up the invocation.
+The unchecked exception may be an
+<A HREF="InvocationException.html">InvocationException</A>
+indicating a failure to serialize
+one of the method's arguments;
+make sure all the arguments are serializable.
+The InvocationException may also indicate
+a failure to send an outgoing message
+to trigger invocations on objects
+in other processes or devices.
+The unchecked exception may also be
+any other RuntimeException or Error,
+typically indicating a software defect
+in the M2MI Layer.
+
+<P>
+When the M2MI Layer invokes a target method
+on an actual target object,
+the target method will not throw any checked exceptions
+(otherwise it could not have been invoked via M2MI).
+However, the target method
+or the M2MI Layer itself
+may throw an unchecked exception.
+The M2MI Layer can be configured
+so that such exceptions cause a stack trace
+to be printed on the standard error stream
+of the process containing the target object.
+However, the M2MI Layer continues to operate.
+The unchecked exception may be an
+<A HREF="InvocationException.html">InvocationException</A>
+indicating a failure to deserialize
+one of the method's arguments;
+make sure all the arguments are serializable.
+The InvocationException may also indicate
+that the destination process cannot find the class
+for one of the method's arguments;
+make sure the destination process possesses
+all the requisite classes.
+(M2MI does not automatically download classes
+like Java RMI does.)
+The unchecked exception may also be
+any other RuntimeException or Error,
+typically indicating a software defect
+in the M2MI Layer.
+
+<P>
+<H3>2.6. M2MI-Based Applications</H3>
+
+<P>
+The above sections have described the details
+of how to work with the M2MI Library.
+What about the high level?
+How does one design a complete M2MI-based application?
+
+<P>
+Unfortunately, we can't give you much specific guidance.
+The M2MI paradigm is still new,
+we are still exploring applications suitable for M2MI,
+and we are not yet certain of the appropriate design patterns
+for M2MI-based applications.
+Study the <A HREF="#examples">M2MI Examples</A>
+and the <A HREF="#references">References</A>
+for ideas.
+
+<P>
+<HR>
+<A NAME="configuring"><H2>3. Configuring the M2MI Layer</H2></A>
+
+<P>
+Both the M2MI Layer and the M2MP Layer are configured
+by means of a "device properties file"
+containing a device ID value.
+Typically, the device properties file
+is named <TT>"device.properties"</TT>
+and resides in the home directory of your account.
+With the device properties file located in your home directory,
+every application that runs in your account
+will use the same device ID.
+Another possibility
+is to put the <TT>"device.properties"</TT> file
+in a subdirectory;
+then every application that runs in that subdirectory
+will use that file to get the device ID
+(instead of the file in your home directory if any).
+See class <A HREF="../device/DeviceProperties.html">DeviceProperties</A>
+for further information
+about where the device properties file can be located.
+
+<P>
+Here is the typical recommended contents
+of the device properties file.
+If you use this example,
+be sure to change the value
+of the <TT>edu.rit.device.id</TT> property.
+
+<P>
+<TABLE BORDER=1 CELLPADDING=4 CELLSPACING=0>
+<TR>
+<TD ALIGN="left" VALIGN="top">
+<FONT SIZE="-1">
+<PRE>
+# Device Properties File
+
+# Globally unique device ID (hexadecimal integer, 000000000000 .. 3FFFFFFFFFFF)
+edu.rit.device.id = 00087443BC87
+</PRE>
+</FONT>
+</TD>
+</TR>
+</TABLE>
+
+<P>
+The meaning of the above setting is as follows.
+See class <A HREF="../device/DeviceProperties.html">DeviceProperties</A>
+for further information
+about the possible property settings.
+<UL>
+<LI>
+<TT><B>edu.rit.device.id</B></TT> --
+The globally unique device ID of the device.
+It must be a 48-bit hexadecimal integer in the range
+<TT>000000000000</TT> through <TT>3FFFFFFFFFFF</TT>.
+Every device in the world must use a different device ID.
+The suggested value is the Ethernet MAC address
+of the device's network interface.
+<I>Be sure to specify a different device ID
+on each different machine that is running M2MI!</I>
+</UL>
+
+<P>
+The M2MI Layer is also configured
+by means of an "M2MI properties file"
+containing a number of configuration settings.
+Typically, the M2MI properties file
+is named <TT>"m2mi.properties"</TT>
+and resides in the home directory of your account.
+With the M2MI properties file located in your home directory,
+every application that runs in your account
+will use the same configuration for the M2MI Layer.
+Another possibility
+is to put the <TT>"m2mi.properties"</TT> file
+in a subdirectory;
+then every application that runs in that subdirectory
+will use that file to configure the M2MI Layer
+(instead of the file in your home directory if any).
+See class <A HREF="M2MIProperties.html">M2MIProperties</A>
+for further information
+about where the M2MI properties file can be located.
+
+<P>
+Here is the typical recommended contents
+of the M2MI properties file.
+A copy of this file is included in the M2MI Library
+(<A HREF="doc-files/m2mi.properties"><TT>m2mi.properties</TT></A>).
+
+<P>
+<TABLE BORDER=1 CELLPADDING=4 CELLSPACING=0>
+<TR>
+<TD ALIGN="left" VALIGN="top">
+<FONT SIZE="-1">
+<PRE>
+# M2MI Properties File
+
+# Maximum number of concurrent method calls (integer &gt;= 1)
+edu.rit.m2mi.maxcalls = 1
+
+# M2MI Layer does invocation messages (integer, 0 = no, non-0 = yes)
+edu.rit.m2mi.messaging = 1
+
+# InvocationThread debug level (integer)
+# 0 = Don't print
+# 1 = Print exception stack traces
+# 2 = Print exception stack traces and debug messages
+edu.rit.m2mi.debug.InvocationThread = 0
+
+# ReceiverThread debug level (integer)
+# 0 = Don't print
+# 1 = Print exception stack traces
+# 2 = Print exception stack traces and incoming M2MI messages
+# 3 = Print exception stack traces and incoming M2MI messages
+#     including message prefixes
+edu.rit.m2mi.debug.ReceiverThread = 0
+</PRE>
+</FONT>
+</TD>
+</TR>
+</TABLE>
+
+<P>
+The meanings of the above settings are as follows.
+See class <A HREF="M2MIProperties.html">M2MIProperties</A>
+for further information
+about the possible property settings.
+<UL>
+<LI>
+<TT><B>edu.rit.m2mi.maxcalls = 1</B></TT> --
+The M2MI Layer will use one thread
+to perform M2MI method calls on target objects;
+that is, M2MI method calls will be performed
+one at a time sequentially.
+If a method call on a target object can block,
+this setting may need to be increased.
+<BR>&nbsp;
+<LI>
+<TT><B>edu.rit.m2mi.messaging = 1</B></TT> --
+The M2MI Layer will broadcast and receive M2MI invocation messages
+using the M2MP Layer.
+<BR>&nbsp;
+<LI>
+<TT><B>edu.rit.m2mi.debug.InvocationThread = 0</B></TT> --
+The M2MI Layer will not print any debug messages,
+such as exception stack traces,
+when performing method calls on target objects.
+<BR>&nbsp;
+<LI>
+<TT><B>edu.rit.m2mi.debug.ReceiverThread = 0</B></TT> --
+The M2MI Layer will not print any debug messages,
+such as exception stack traces,
+when receiving messages from the M2MP Layer.
+</UL>
+
+<P>
+<HR>
+<A NAME="examples"><H2>4. M2MI Examples</H2></A>
+
+<P>
+M2MI was designed as a paradigm and infrastructure
+for distributed ad hoc collaborative applications.
+The M2MI Library includes two examples
+of such applications at present:
+<UL>
+<LI>
+Package <A HREF="chat1/package-summary.html">edu.rit.m2mi.chat1</A>
+contains a simple chat application.
+Whenever a user types a line in one instance of the chat application,
+the line is displayed in all the instances of the chat application.
+<BR>&nbsp;
+<LI>
+Package <A HREF="../slides/package-summary.html">edu.rit.slides</A>
+contains a collaborative slide show application.
+One device, the "projector," broadcasts a series of slides.
+Another device, the "screen," displays the slides.
+The screen device could be a PC driving a digital projector,
+or the screen device could be a user's laptop.
+Multiple projector devices and multiple screen devices
+can be participating in the slide show.
+</UL>
+
+<P>
+We are still in the initial stages
+of investigating M2MI
+as a paradigm for ad hoc collaborative applications.
+Future releases of the M2MI Library
+will include additional examples
+of M2MI-based applications.
+
+<P>
+<HR>
+<A NAME="architecture"><H2>5. M2MI Architecture</H2></A>
+
+<P>
+<CENTER>
+<IMG SRC="doc-files/m2miarch.png">
+<BR>
+<FONT SIZE="-1"><B>Figure 7: M2MI architecture</B></FONT>
+</CENTER>
+
+<P>
+As Figure 7 shows,
+when a calling object invokes a method on a handle,
+M2MI invocations may need to go to three places:
+to exported objects in the same process as the calling object,
+to exported objects in other processes on the same device,
+and to exported objects in other devices.
+
+<P>
+<H3>5.1. M2MI Invocations Within the Same Process</H3>
+
+<P>
+An M2MI invocation begins with a handle.
+The handle contains two things:
+the handle's target interface,
+and a globally-unique <EM>exported object identifier</EM> (EOID).
+For a unihandle,
+the EOID designates a single exported object.
+For a multihandle,
+the EOID designates a group of exported objects.
+For an omnihandle,
+the EOID is a wildcard value
+designating all objects that implement
+the handle's target interface.
+The M2MI Layer sets the handle's EOID and target interface
+when the handle is created.
+
+<P>
+The calling object kicks things off
+by invoking a method on the handle.
+The handle creates a <EM>method invoker</EM> object,
+which knows how to invoke the target method on a given target object,
+and which contains the target method's argument values if any.
+The handle also creates an <EM>invocation</EM> object
+encapsulating the following information:
+(a) the EOID from the handle;
+(b) a method descriptor consisting of
+the target interface name,
+the target method name,
+and the target method's argument types;
+and (c) the method invoker object
+(including the argument values).
+The handle then hands the invocation object off to the M2MI Layer.
+The M2MI Layer attempts to map the EOID (for a unihandle or multihandle)
+or the target interface name (for an omnihandle)
+to the associated exported objects.
+If any are found,
+the M2MI Layer puts the invocation object in a queue.
+One or more separate <EM>invocation threads</EM>
+read the queue
+and tell the method invoker object
+to perform the actual method calls on the target objects,
+using the argument values stored in the method invoker object.
+
+<P>
+<H3>5.2. M2MI Invocations to Other Processes Within the Same Device</H3>
+
+<P>
+The M2MI Layer uses the Many-to-Many Protocol (M2MP)
+to broadcast the invocation to other processes and devices.
+The M2MI Layer generates an M2MP message
+containing a serialized version of the invocation object,
+and sends the message via the M2MP Layer.
+
+<P>
+The M2MP Layer is responsible
+for broadcasting each M2MI invocation message
+to all processes running M2MI
+in the same device and other devices.
+See package <A HREF="../m2mp/package-summary.html">edu.rit.m2mp</A>
+for a description of the M2MP Layer's architecture.
+Each packet of the invocation message goes
+to the M2MP Daemon process
+running in the same device
+via kernel shared memory.
+The M2MP Daemon process
+sends a copy of each packet
+to every instance of the M2MP Layer
+running in other processes on the same device,
+again via kernel shared memory.
+(Specifically, the packets are sent through socket connections
+to the M2MP Daemon process on the local host,
+which are typically implemented via kernel shared memory.)
+Thus, an outgoing M2MP message sent by one process
+becomes an incoming M2MP message received by every other process.
+
+<P>
+The M2MP Layer matches each incoming message
+against a group of <EM>message filters.</EM>
+Only those incoming messages that match a message filter
+will be passed on to the M2MI Layer;
+other incoming messages are discarded.
+When the M2MI Layer exports an object
+to be invoked by an omnihandle,
+the M2MI Layer registers a message filter
+that will match an M2MI message
+containing the omnihandle's target interface.
+When the M2MI Layer exports an object
+to be invoked by a unihandle or multihandle,
+the M2MI Layer registers a message filter
+that will match an M2MI message
+containing the unihandle's or multihandle's EOID.
+Thus, the M2MI Layer will receive from the M2MP Layer
+only those M2MI messages
+that will result in invocations on objects
+actually exported in the M2MI Layer.
+
+<P>
+When it receives an incoming M2MI invocation message,
+the M2MI Layer deserializes the message
+and reconstitutes the invocation object.
+The M2MI Layer then proceeds to process the invocation object
+exactly as described before,
+causing the target method to be invoked
+on the target object(s).
+
+<P>
+<H3>5.3. M2MI Invocations to Other Devices</H3>
+
+<P>
+To send M2MI invocations between devices,
+the M2MP Daemon process
+forwards a copy of each outgoing M2MP message
+to the external broadcast network
+as well as to the local M2MP client processes.
+The M2MP Daemon process
+also listens to the external broadcast network,
+receives incoming messages from other devices,
+and forwards copies
+to each M2MP client process.
+On the external broadcast network,
+message packets are conveyed as UDP datagrams
+sent to to a multicast IP address
+(if there is more than one other device)
+or to a unicast IP address
+(if there is just one other device).
+
+<P>
+Once an M2MI invocation message from another device
+is sent to an M2MP client process,
+the message is processed in exactly the same way
+as messages originating within the same device.
+
+<P>
+The M2MP Daemon process
+could interface to the external broadcast network
+in different ways.
+It could use UDP datagrams over an 802.11 wireless Ethernet.
+It could send M2MP messages
+directly in Ethernet frames
+rather than going through the TCP/IP stack.
+It could use some other wireless networking technology.
+Future work on M2MI
+will explore these possibilities.
+
+<P>
+<H3>5.4. Proxy Synthesis</H3>
+
+<P>
+Other remote method invocation systems,
+such as CORBA and Java RMI,
+are implemented using <EM>proxies</EM>.
+On the calling side,
+a <EM>sending proxy</EM> or <EM>stub</EM>
+converts a method call to an outgoing message.
+On the called side,
+a <EM>receiving proxy</EM> or <EM>skeleton</EM>
+converts an incoming message
+back into a method call on the target object.
+The classes for the stub and skeleton objects
+typically must be generated, compiled,
+and installed before starting the system,
+although Java RMI lets proxy classes be downloaded
+at run time from a codebase server.
+
+<P>
+M2MI is also implemented using proxies:
+the handle is the sending proxy,
+and the method invoker is the receiving proxy.
+However, the classes for M2MI handles and method invokers
+do not have to be generated, compiled, and installed
+ahead of time.
+Instead, the M2MI Layer automatically <EM>synthesizes</EM>
+the binary class file
+for each handle class and each method invoker class,
+as needed, at run time,
+and automatically loads each synthesized class
+into the Java Virtual Machine
+using a special internal class loader.
+This eliminates all the extra work
+associated with RMI proxies
+and makes M2MI-based applications
+easier to develop and deploy.
+
+<P>
+To synthesize its handle and method invoker classes,
+the M2MI Layer makes use of the RIT Classfile Library,
+a general purpose library for class file synthesis.
+See package <A HREF="../classfile/package-summary.html">edu.rit.classfile</A>
+for further information.
+
+<P>
+<H3>5.5. Queuing Behavior</H3>
+
+<P>
+M2MI is a queuing system.
+Application threads perform invocations on handles;
+separate threads inside the M2MI Layer
+actually invoke the target objects.
+Invocations are placed in a queue to await processing.
+
+<P>
+As in any queuing system,
+it is possible to put items into the queue
+faster than they are taken out.
+That is,
+it is possible to write an M2MI-based application
+where one or more threads
+generate M2MI invocations so quickly
+that the threads inside the M2MI Layer
+do not get enough CPU time
+to read and process all the invocations.
+If this happens, the invocation messages
+will queue up in the M2MP Layer and/or the M2MI Layer.
+If the queue grows too large,
+the Java Virtual Machine's memory space will become exhausted,
+and the application will start throwing OutOfMemoryExceptions.
+If this happens,
+the application must be redesigned
+so invocations are not performed
+faster than they can be processed.
+
+<P>
+<HR>
+<A NAME="references"><H2>6. References</H2></A>
+
+<P>
+<DL COMPACT>
+
+<DT>[BKB03]
+<DD>
+<A NAME="BKB03"></A>
+Hans-Peter Bischof, Alan Kaminsky, and Joseph Binder.
+A new framework for building secure collaborative systems
+in ad hoc network.
+<I>Second International Conference on AD-HOC Networks and Wireless
+(ADHOC-NOW '03),</I>
+Montreal, Canada, October 2003.
+<BR>
+(<A HREF="http://www.cs.rit.edu/~anhinga/publications/montreal_October_03.pdf" TARGET="_top">http://www.cs.rit.edu/~anhinga/publications/montreal_October_03.pdf</A>)
+<BR>&nbsp;
+
+<DT>[KB03]
+<DD>
+<A NAME="KB03"></A>
+Alan Kaminsky and Hans-Peter Bischof.
+New architectures, protocols, and middleware
+for ad hoc collaborative computing.
+<I>Middleware 2003 Workshop on Middleware
+for Pervasive and Ad Hoc Computing,</I>
+Rio de Janeiro, Brazil, June 2003.
+<BR>
+(<A HREF="http://www.cs.rit.edu/~anhinga/publications/mw2003cr.pdf" TARGET="_top">http://www.cs.rit.edu/~anhinga/publications/mw2003cr.pdf</A>)
+<BR>&nbsp;
+
+<DT>[BK02]
+<DD>
+<A NAME="BK02"></A>
+Hans-Peter Bischof and Alan Kaminsky.
+Many-to-Many Invocation: A new framework
+for building collaborative applications in ad hoc networks.
+<I>CSCW 2002 Workshop on Ad Hoc Communication
+and Collaboration in Ubiquitous Computing Environments,</I>
+New Orleans, Louisiana, USA, November 2002.
+<BR>
+(<A HREF="http://www.cs.rit.edu/~anhinga/publications/m2mi20021015.pdf" TARGET="_top">http://www.cs.rit.edu/~anhinga/publications/m2mi20021015.pdf</A>)
+<BR>&nbsp;
+
+<DT>[KB02]
+<DD>
+<A NAME="KB02"></A>
+Alan Kaminsky and Hans-Peter Bischof.
+Many-to-Many Invocation: A new object oriented paradigm
+for ad hoc collaborative systems.
+<I>17th Annual ACM Conference
+on Object Oriented Programming Systems, Languages, and Applications
+(OOPSLA 2002),</I>
+Onward! track, Seattle, Washington, USA, November 2002.
+<BR>
+(<A HREF="http://www.cs.rit.edu/~anhinga/publications/m2mi20020716.pdf" TARGET="_top">http://www.cs.rit.edu/~anhinga/publications/m2mi20020716.pdf</A>)
+<BR>&nbsp;
+
+<DT>[WRW96]
+<DD>
+<A NAME="WRW96"></A>
+A. Wollrath, R. Riggs, and J. Waldo.
+A distributed object model for the Java system.
+<I>Computing Systems,</I> 9(4):265-290, Fall 1996.
+
+</DL>
+
+</BODY>
+</HTML>

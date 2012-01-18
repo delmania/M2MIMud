@@ -1,0 +1,2461 @@
+head	1.17;
+access;
+symbols;
+locks
+	rjw2183:1.17; strict;
+comment	@# @;
+
+
+1.17
+date	2005.01.13.15.47.06;	author rjw2183;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2004.12.16.16.39.30;	author rjw2183;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2004.12.14.17.22.24;	author rjw2183;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2004.12.10.02.29.16;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.11.11.04.28.40;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.10.21.02.47.24;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.09.24.03.43.35;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.09.23.03.59.57;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.09.16.02.39.28;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.09.10.02.32.56;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.08.11.20.06.36;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.07.22.19.33.30;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.07.16.18.35.43;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.07.06.19.58.30;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.07.01.19.49.55;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.29.20.00.03;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@/** 
+ * The GameState is the class which contains all the state information
+ * about the session that the user is in.  This contains data about the
+ * location of the ponds, merchants, houses, monsters, as well as the players
+ * in the game.  Both the World and the GameSystem use and update this as
+ * state changes happens, so that there is no need to determine the state
+ * every time the broadcast happens.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: GameState.java,v 1.16 2005/01/06 17:38:24 rjw2183 Exp rjw2183 $
+ */
+ 
+ package m2mimud.state;
+ 
+ import java.io.*;
+ import java.util.Vector;
+ import java.util.HashMap;
+ import java.util.Iterator;
+ import edu.rit.m2mi.Eoid;
+ import java.util.Date;
+ import m2mimud.game.PlayerCache;
+ import m2mimud.communications.Game;
+ import m2mimud.game.PlayerCacheListener;
+ 
+ public class GameState
+ implements Externalizable
+ {
+ 	/** 
+	 * These are access symobls to tell the GameState what part
+	 * of the state the caller is moduifying or trying to look up
+	 */
+	public static final int PLAYER = 0;
+	public static final int MOB = 1;
+	public static final int POND = 2;
+	public static final int MERCHANT = 3;
+	public static final int HOUSE = 4;
+	
+	private Vector myPonds; // A vector which stores where the ponds are.
+	private HashMap myMobs; // the HashMap which stores the mob information
+	private HashMap myHouses; // the HashMap which stores the housing information
+	private HashMap myMerchants; // a hash map which stores the merchant data
+	private PlayerCache myPlayers; // the player cache for this session
+	private Game myHandle; // the handle of the unit which generated this object
+	private int myTime; // the current time of the session
+	private WorldConfiguration myConfig; // the session's configuration file, which 
+					     // contains information about the map
+	private Eoid myPlayerId; // the id of the player this is associated with
+	private boolean emergencyReport; // boolean to indicater if there is a serious state disparity thay needs
+					   // to be resolved asap.
+	private int myPartNum;					     
+	
+	/**
+	 * Normal Constructor
+	 * @@param theHandle The unihandle for the Game object which created this state
+	 * @@param theTime  The initail time of the game
+	 * @@param playerId the id of the player this state is associated with 
+	 */
+	public GameState( Game theHandle, int theTime, Eoid playerId, PlayerCacheListener pcList  )
+	{
+		myHandle = theHandle;
+		myPonds = new Vector();
+		myMobs = new HashMap();
+		myHouses = new HashMap();
+		myMerchants = new HashMap();
+		myPlayers = new PlayerCache( pcList );
+		myTime = theTime;
+		myConfig = null;
+		emergencyReport = false;
+		myPlayerId = playerId;
+		myPartNum = 0;
+	}
+	
+	/**
+	 * Constructor used by readExternal
+	 */
+	public GameState()
+	{
+		myHandle = null;
+		myPonds = new Vector();
+		myMobs = new HashMap();
+		myHouses = new HashMap();
+		myMerchants = new HashMap();
+		myPlayers = new PlayerCache( null );
+	}
+	
+	/**
+	 * Sets the listener for the playercache
+	 * @@param pcList The player cache listener/
+	 */
+	public void setPCList( PlayerCacheListener pcList )
+	{
+		myPlayers.setListener( pcList );
+	}
+	
+	/**
+	 * Sets the configuaton object
+	 */
+	public void setConfig( WorldConfiguration theConfig )
+	{
+		myConfig = theConfig;
+	}
+	
+	/** 
+	 * Returns the WorldConfiguration data carried by this state
+	 */
+	public WorldConfiguration getConfig()
+	{
+		return myConfig;
+	}
+	
+	/**
+	 * Returns the handle of the owner of this state
+	 */
+	public Game getHandle()
+	{
+		return myHandle;
+	}
+	
+	/**
+	 * Sets the player's Id
+	 * @@param id The is to use
+	 */
+	public void setId( Eoid id )
+	{
+		myPlayerId = id;
+	}
+	
+	/** 
+	 * Sets the partition number
+	 * @@param partNum The partition number
+	 */	
+	public void setPartNum( int partNum )
+	{
+		myPartNum = partNum;
+	}
+	
+	/**
+	 * Gets the partition number
+	 */
+	public int getPartNum()
+	{
+		return myPartNum;
+	}
+	
+	/**
+	 * Returns the PlayerCharacter of the player associated with this state
+	 */
+	public PlayerCharacter getPlayer()
+	{
+		return (PlayerCharacter)get( GameState.PLAYER, myPlayerId );
+	}
+	
+
+	/**
+	 * Returns whether or not an emergency broadcast is needed
+	 */
+	public boolean needsEmergencyReport()
+	{
+		return emergencyReport;
+	}
+	
+	/** 
+	 * Returns then number of players in this session
+	 */
+	public int numPlayers()
+	{
+		return myPlayers.numPlayers();
+	}
+		
+	/** 
+	 * Sets the time of state
+	 * @@param newTime The time of the state
+	 */
+	public void setTime( int newTime )
+	{
+		if( newTime == TimeManager.EARLY_MORNING ||
+		    newTime == TimeManager.MID_MORNING ||
+		    newTime == TimeManager.EARLY_AFTERNOON ||
+		    newTime == TimeManager.LATE_AFTERNOON ||
+		    newTime == TimeManager.EARLY_EVENING ||
+		    newTime == TimeManager.EVENING )
+				myTime = newTime;
+	}
+	
+	/**
+	 * Returns the current time
+	 */
+	public int getTime()
+	{
+		return myTime;	
+	}
+	
+	/** 
+	 * The basic function for adding an object to the state
+	 * @@param which The integer code for what this object is
+	 * @@param theObject The object to add
+	 */
+	public void add( int which, Object theObject )	
+	{
+		switch( which )
+		{
+			case PLAYER:
+			{				
+				myPlayers.addPlayer( 
+				(PlayerCharacter)theObject );
+			}
+			break;
+			case MOB:
+			{
+				Mob theMob = (Mob)theObject;
+				if( !myMobs.containsKey( theMob.getKey() ) )
+					myMobs.put( theMob.getKey(), theMob );
+			}
+			break;
+			case POND:
+			{
+				if( myPonds.indexOf( (XYloc)theObject ) == -1 )
+					myPonds.add( (XYloc)theObject );				
+			}
+			break;
+			case MERCHANT:
+			{
+				Merchant theMerchant = (Merchant)theObject;
+				// Since there can only be only merchant per room, indexing them
+				// based on their location works
+				if( !myMerchants.containsKey( theMerchant.getLocation() ) )
+					myMerchants.put( theMerchant.getLocation(), theMerchant );
+			}
+			break;
+			case HOUSE:
+			{
+				House theHouse = (House)theObject;
+				// Eoid's are unique for each player, perfect thing to index the houses on
+				if( !myHouses.containsKey( theHouse.getOwner() ) )
+					myHouses.put( theHouse.getOwner(), theHouse );
+			}
+			break;
+		}	
+	}
+	
+	/**
+	 * The basic get Object, this allows others to get the requested objects within the 
+	 * the System.  If the requested code is for a pond, this returns a boolesn value use to
+	 * indicate if the given loc has that pond.
+	 * @@param which The integer code for what the user want
+	 * @@param theKey This should be the key object used to access the element
+	 */
+	public Object get( int which, Object theKey )
+	{
+		Object retVal = null;
+		switch( which )
+		{
+			case PLAYER:
+			{
+				retVal = myPlayers.getPlayer( (Eoid)theKey );
+			}
+			break;
+			case MOB:
+			{
+				retVal = myMobs.get( (MobKey)theKey );
+			}
+			break;
+			case POND:
+			{
+				retVal = new Boolean( myPonds.indexOf( (XYloc)theKey ) != -1 );
+			}
+			break;
+			case MERCHANT:
+			{
+				retVal = myMerchants.get( (XYloc)theKey );
+			}
+			break;
+			case HOUSE:
+			{
+				retVal = myHouses.get( (Eoid)theKey );
+			}
+			break;
+		}
+		return retVal;		
+	}
+	
+	/**
+	 * A check function, this can be used to see if the state has the given object
+	 * @@param which Integer code used to indicate what object the caller is looking up
+	 * @@param theKey This is the key value of the object to see if the state has this object
+	 */
+	public boolean has( int which, Object theKey )
+	{
+		boolean retVal = false;
+		switch( which )
+		{						
+			case PLAYER:
+			{
+				retVal = myPlayers.validKey( (Eoid)theKey );
+			}
+			break;
+			case MOB:			
+			{
+				retVal = myMobs.containsKey( (MobKey)theKey );
+			}
+			break;
+			case POND:
+			{	
+				retVal = (myPonds.indexOf( (XYloc)theKey ) != -1);				
+			}
+			break;
+			case MERCHANT:
+			{	
+				retVal = myMerchants.containsKey( (XYloc)theKey );
+			}
+			break;
+			case HOUSE:
+			{	
+				retVal = myHouses.containsKey( (Eoid)theKey );
+			}
+			break;
+		}
+		return retVal;		
+	}
+	
+	/**
+	 * This returns an iterator which can be used to 
+	 * examine all the values of the specified collection.
+	 * There is nothing special about this iterator, so that if the underlying
+	 * collection is changed without using the iterator, it will throw and exception.
+	 * @@param: which An integer code used to determine which iterator to get
+	 */
+	public Iterator getCollection( int which )
+	{
+		Iterator retVal = null;
+		switch( which )
+		{
+			case PLAYER:
+				retVal = myPlayers.getPlayers();
+			break;
+			case MOB:
+				retVal = myMobs.values().iterator();
+			break;
+			case POND:
+				retVal = myPonds.iterator();
+			break;
+			case MERCHANT:
+				retVal = myMerchants.values().iterator();
+			break;
+			case HOUSE:
+				retVal = myHouses.values().iterator();
+			break;
+		}
+		return retVal;
+	}
+	
+	
+	/**
+	 * This function removes the object from the state
+	 * It also returns the removed object.
+	 * @@param which An integer code which tells which collection to remove 
+	 *              the object from
+	 * @@param key The key of the object to remove
+	 */
+	public Object remove( int which, Object key )
+	{
+		Object retVal = null;
+		switch( which )
+		{
+			case PLAYER:
+			{
+				retVal = myPlayers.getPlayer( (Eoid)key );
+				myPlayers.removePlayer( (Eoid)key );
+			}
+			break;
+			case MOB:
+			{
+				retVal = myMobs.remove( (MobKey)key );
+			}
+			break;
+			case POND:			
+			{
+				int index = myPonds.indexOf( (XYloc)key );
+				if( index < myPonds.size() )
+					retVal = myPonds.remove( index );
+			}
+			break;
+			case MERCHANT:
+			{
+				retVal = myMerchants.remove( (XYloc)key );
+			}
+			break;
+			case HOUSE:
+			{
+				retVal = myHouses.remove( (Eoid)key );
+			}
+			break;
+		}
+		return retVal;
+	}
+		
+	
+	/**
+	 * Copies the other stats collection into ths one
+	 * @@param other The other state.
+	 */
+	private void copyCollection( int which, GameState other )
+	{
+		Iterator dataValues = other.getCollection( which );
+		while( dataValues.hasNext() )		
+			add( which, dataValues.next() );					
+	}
+	
+	/**
+	 * This function clears out the state information
+	 */
+	public void clear()
+	{
+		myMobs.clear();
+		myHouses.clear();
+		myMerchants.clear();
+		myPonds.clear();
+	}
+	
+	/**
+	 * This version of clear allows the caller to clear specific things
+	 * @@param which The integer code that tells this what to clear
+	 */
+	public void clear( int which )
+	{
+		switch( which )
+		{
+			case MOB:
+			{
+				myMobs.clear();
+			}
+			break;
+			case POND:
+			{
+				myPonds.clear();
+			}
+			break;
+			case MERCHANT:
+			{
+				myMerchants.clear();
+			}
+			break;
+			case HOUSE:
+			{
+				myHouses.clear();
+			}
+			break;
+			case PLAYER:
+			{
+				myPlayers.purge();
+			}
+			break;
+		}
+	}
+	
+	
+	/**
+	 * Returns whether or not this object is equal to the other one
+	 * @@param other The other object to check
+	 */
+	public boolean equals( Object other )
+	{
+		boolean retVal = false;
+
+		if( other != null && other.getClass().equals( GameState.class ) )
+		{			
+                        GameState otherState = (GameState)other;		                        
+                        if( !myPlayers.equals( otherState.myPlayers ) )
+                            System.err.println( "PLAYERS" );                        
+			
+			if( !myPonds.equals( otherState.myPonds ) )
+				System.err.println( "PONDS" );
+				
+			if( !myHouses.equals( otherState.myHouses ) )
+				System.err.println( "HOUSES" );
+			
+			if( !myMobs.equals( otherState.myMobs ) )
+				System.err.println( "MOBS" );
+				
+		        retVal = ( myPlayers.equals( otherState.myPlayers ) &&
+				   myPonds.equals( otherState.myPonds ) &&
+			           myHouses.equals( otherState.myHouses ) &&
+				   myMerchants.equals( otherState.myMerchants ) &&
+				   myMobs.equals( otherState.myMobs ) );	
+		}
+		return retVal;
+		
+	}
+	
+	/**
+	 * Gets a player by name
+	 * @@param name The name of the player.
+	 */
+	public PlayerCharacter getPlayerByName( String name )
+	{
+		return myPlayers.lookupByName( name );
+	}
+	
+	
+	/**
+	 * Performs a lookup
+	 * @@param name The name to lookup
+	 * @@param list The vector to place the results in
+	 */
+	public void doLookup( String name, Vector list )
+	{
+		myPlayers.performLookup( name, list );
+	}
+	
+	/** 
+	 * Returns a string representation of the player cache
+	 */
+	public String getPlayerCacheString()
+	{
+		return myPlayers.toString();
+	}
+	
+	/**
+	 * Returns how many players have this name
+	 * @@param name The name to look up
+	 */
+	public int getCount( String name )
+	{
+		return myPlayers.getNameCount( name );
+	}
+	
+	/**
+	 * Refreshes the player's timeout timer
+	 * @@param: playerId The id of the player who needs to be refreshed
+	 */
+	public void refreshPlayer( Eoid playerId )
+	{
+		myPlayers.refreshTimer( playerId );
+	}
+	
+	/**
+	 * Returns the id of the house the player is in
+	 */
+	public Eoid getHouseId()
+	{
+		Eoid retVal = null;
+		Iterator theHouses = myHouses.values().iterator();
+		while( theHouses.hasNext() && retVal == null )
+		{ 
+			House theHouse = (House)theHouses.next();
+			if( theHouse.hasPlayer( myPlayerId ) )
+				retVal = theHouse.getOwner();
+		}
+		return retVal;
+	}
+		
+	/**
+	 * This updates the listener for all the mobs and merchants
+	 * @@param mobList The mob listener
+	 * @@param merch The merchant listener
+	 * @@param world The object object
+	 */
+	public void updateListeners( MobListener mobList, MerchantListener merchList, World world )
+	{
+		Iterator theItems = myMobs.values().iterator();
+		while( theItems.hasNext() )
+		{
+			Mob theMob = (Mob)theItems.next();
+			theMob.setList( mobList, world );
+			if( !theMob.isUnderAttack() && theMob.isAlive() )
+				theMob.restartMovementTimer();				
+		}
+		
+		theItems = myMerchants.values().iterator(); 
+		while( theItems.hasNext() ) 
+		{ 
+			Merchant theMerch = (Merchant)theItems.next();
+			theMerch.setListener( merchList ); 
+			theMerch.scheduleNextMessage(); 
+		} 
+	}
+
+	/**
+	 * Each portion sent out by the various units within a session
+         * can be though of as fragments of a much larger global state.
+         * This function takes in a fragment from a given unit and it uses
+         * it to perform some synchronization if need be. 
+	 * @@param other A fragment of the global state to use to perform synchonization
+	 * @@param theWorld the world object to modify
+	 */	 
+	public void synchronize( GameState other, World theWorld )
+	{	
+		PlayerCharacter myPlayer = (PlayerCharacter)get( PLAYER, myPlayerId );
+		
+		// Step 1: Add any players, houses, and ponds not in the world
+		checkItems( other, HOUSE, theWorld );
+		checkItems( other, PLAYER, theWorld );		
+		checkItems( other, POND, theWorld );
+		checkItems( other, MERCHANT, theWorld );
+		
+		// Step 2: Check the player
+		// This isn't handled by internal functions.
+		// Also the rules state that only the unit that control the toon
+		// can control where a player is and what it is fighting (for pvp)
+		// The exception to this is PvE combat, and that is because the mob
+		// needs to placed into combat asap to help reduce the chance of multiple players
+		// attacking on monster.			
+		PlayerCharacter myCopy = (PlayerCharacter)this.get( PLAYER, other.getPlayer().getId() );
+		PlayerCharacter otherCopy = other.getPlayer();
+		
+		// If my player was previously engaged in combat with the player owned by this
+		// fragment of the global state, check to make sure that player is still
+		// fighting my player.  If not, remove my player from combat with that player
+		if( myPlayer.isInCombat() && myPlayer.getTarget().equals( otherCopy.getId() ) )
+                {
+                	if( !( otherCopy.isInCombat() && otherCopy.getTarget().equals( myPlayer.getTarget() )))
+                	{
+                        	System.err.println( "Here" );
+				myPlayer.clearTargetData();
+        	                myCopy.clearTargetData();
+                	}
+                }
+			
+		// Case 1: The global state player is not in combat.
+                if( !otherCopy.isInCombat() )
+		{
+			// The first check determines if the local copy 
+			// of the player is in combat.  If so, he needs
+			// to be removed from combat with whatever he was 
+			// fighting.  
+			clearPlayerTarget( myCopy );
+				
+			// Check to see if the player needs to be removed from a house.
+			if( myCopy.isInHouse() && !otherCopy.isInHouse() )
+				theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+				
+			// Warp the local copy to whereever the plays says it is
+			theWorld.performWarp( myCopy.getId(), otherCopy.getLocation() );
+				
+			// Finally, check houses again.  
+			if( otherCopy.isInHouse() )
+			{										
+				if( myCopy.isInHouse() )
+					theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+				theWorld.movePlayerIntoHouse( myCopy.getId(), otherCopy.getHouse() );									
+			}
+                  }
+                  else
+                  {
+			if( myCopy.isInHouse() )
+                        theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+                     
+			// This is when the fragment copy is in combat.
+			if( otherCopy.hasMobTarget() )
+			{                                  
+                                    // This is the section where the player is
+                                    // in combat with a mob. 
+                                    
+                                    // First, get the mobs.
+                                    MobKey mKey = (MobKey)otherCopy.getTarget();
+                                    Mob myMob = (Mob)get( GameState.MOB, mKey);
+                                    Mob otMob = (Mob)other.get( GameState.MOB, mKey );
+                                    
+                                    // Second, only do this if the local mob is not
+                                    // in combat or it has a later combat timestamp
+                                    // than the fragment copy of the mob.  This is
+                                    // because earlier timestamps get the benefit of the doubt
+                                    if( !myMob.isUnderAttack() ||
+                                        otMob.getCombatTimeStamp().before( myMob.getCombatTimeStamp() ))
+                                    {                                        
+                                    	// First thing if need be, clear out the target information
+                                        // of both the local player and mob, if need be.
+                                        if( myMob.isUnderAttack() )
+                                        {                                            
+                                            Eoid theTarget = myMob.getTarget();
+                                            PlayerCharacter pChar = 
+                                            (PlayerCharacter)get( GameState.PLAYER, theTarget );
+                                            pChar.clearTargetData();
+                                            myMob.stopAttack();
+                                        }
+                                        
+                                        // Clear out the local copy of the fragment's
+                                        // player data if need be.
+                                        clearPlayerTarget( myCopy );
+                                        
+                                        // Finally warp the mob and player
+                                        // to where the fragment says they are and place
+                                        // them into combat.
+                                        theWorld.performWarp( myCopy.getId(), otMob.getCurrentLocation() );
+                                        theWorld.moveMob( myMob.getKey(), otMob.getCurrentLocation() );
+                                        myMob.startAttackSilent( myCopy.getId(), otMob.getCombatTimeStamp() );
+                                        myCopy.registerTarget( myMob.getKey() );
+                                }                                    
+                        }
+			else
+                        {
+                        	// This is the case where the fragment copy is in combat
+                        	// and so is the player copy.  In this case the rules are 
+				// a bit different, because unlike pve combat, pvp 
+				// combat deals with 2 players.  So the rule of thumb here
+				// is to basically do what the fragment says, and then let
+				// later fragments deal with it.
+				Eoid theTarget = (Eoid)otherCopy.getTarget();
+                                    
+				// Only do this is (1) the target is not the player
+				// associated with the local fragment, or (2) the target
+				// of the player associated with the local fragment
+				if( !myPlayerId.equals( theTarget ) &&
+                                        !theTarget.equals( myPlayer.getTarget() ))
+				{
+					// The first thing to to, if need be is to 
+                                        // clear out the combat data of the both the 
+                                        // player and his target.
+                                        PlayerCharacter pChar = 
+                                        (PlayerCharacter)get( GameState.PLAYER, theTarget );
+                                        
+                                        clearPlayerTarget( myCopy );
+                                        clearPlayerTarget( pChar );
+                                        
+                                        XYloc theLoc = otherCopy.getLocation();
+                                        
+                                        theWorld.performWarp( myCopy.getId(), theLoc );
+                                        theWorld.performWarp( pChar.getId(), theLoc );
+                                        
+                                        myCopy.registerTarget( pChar.getId() );
+                                        pChar.registerTarget( myCopy.getId() );
+				}                                    
+			}
+					
+		}
+			
+		
+		
+		// Compare my copy of my player to the other's copy of my player.
+		// if they are not equal, we need to get our data out FAST
+		PlayerCharacter otherMyPlayer = (PlayerCharacter)other.get( PLAYER, myPlayerId );
+		if( !myPlayer.equals( otherMyPlayer ) )
+			emergencyReport = true;		
+                
+                // Step 3: Check the Mobs
+		checkMobs( other, theWorld );	
+	}
+	
+        // This is a private function used to clear the target information
+        // of a player
+        public void clearPlayerTarget( PlayerCharacter thePlayer )
+        {
+		
+        	PlayerCharacter myPlayer = 
+			(PlayerCharacter)get( GameState.PLAYER, myPlayerId );
+		if( thePlayer.isInCombat() )
+          	{
+	            if( thePlayer.hasMobTarget() )
+	            {
+		        MobKey theKey = (MobKey)thePlayer.getTarget();
+                	// This is a special case.  To describe what this prevents,
+			// say that player A is the local state player and that player B is the 
+			// player from the incoming state.  Now player A is fighting the same mob
+			// that player B is fighting.  However, player A has an earlier timestamp.
+			// than player B, so she gets to keep fighting the mob.  This means that 
+			// player B needs to be removed from combat on the local side. However,
+			// since player B is fighting the same mob as player A, this mob
+			// will be removed from combat.  It shouldn't though, because it is fighting
+			// player A.  So, this check ensures that the mob being removed from 
+			//  combat is not the one being fought by the local state player.
+			if( !theKey.equals( myPlayer.getTarget() ) )
+			{
+				Mob theMob = (Mob)get( GameState.MOB, theKey );
+		                theMob.stopAttack();
+			}
+	            }
+        	    else
+	            {	
+        	        Eoid theId = (Eoid)thePlayer.getTarget();
+			PlayerCharacter pChar = 
+	                (PlayerCharacter)get( GameState.PLAYER, theId );
+        		        pChar.clearTargetData();
+	            }
+        	    thePlayer.clearTargetData();  
+	        }
+        }
+	
+	/**
+	 * This function examines each element of the array, adding 
+	 * anything that it does not find.
+	 * @@param other The other state to look at
+	 * @@param which A integer that indicates if this function is looking at
+	 *               players, ponds, or houses.
+	 * @@param theWorld The world object to modify, in the case of players and houses
+	 */
+	private void checkItems( GameState other, int which, World theWorld )
+	{
+		
+		Iterator items = other.getCollection( which );
+		while( items.hasNext() )
+		{						
+			// this is really simple, if this state does not have the item, add it.
+			// for players and houses, the world needs to be updated as well, since the
+			// the key of the object must be added to the appropiate room
+			Object theItem = items.next();
+			Object theKey = null;
+			if( which == HOUSE )
+				theKey = ((House)theItem).getOwner();
+			else if( which == PLAYER )
+				theKey = ((PlayerCharacter)theItem).getId();
+			else if( which == MERCHANT )
+				theKey = ((Merchant)theItem).getLocation();
+			else
+				theKey = (XYloc)theItem;
+			
+										
+			if( !this.has( which, theKey ) )
+			{
+				this.add( which, theItem );
+				if( which == HOUSE )                                
+                                    theWorld.placeHouse( (House)theItem );                                    
+				else if( which == PLAYER && !theKey.equals( myPlayerId ) )				
+                                {
+                                    theWorld.placePlayer( (PlayerCharacter)theItem );				                                    
+                                }
+			}				
+		}			 		
+	}
+	
+	
+	/**
+	 * This function compares this state's version of the mobs to the 
+	 * other state's version of the mobs, making changes if need be.
+	 * @@param other The portion of the global state to compare mobs to
+	 * @@param theWorld The world object to modify
+	 */
+	private void checkMobs( GameState other, World theWorld )
+	{				
+		// What this function does is to check the position and the 
+		// status of each mob.  So long as neither version is in combat,
+		// the local copy is set to whatever the global copy.  The reason
+		// both copies have to not be in combat is because combat is a player
+		// activity, and by rule, only the unit that controls the player
+		// can makes changes to it.
+		Iterator theMobs = other.getCollection( GameState.MOB );
+		while( theMobs.hasNext() )
+		{
+			Mob otherMob = (Mob)theMobs.next();
+			Mob myMob = (Mob)get( GameState.MOB, otherMob.getKey() );
+			if( ( myMob != null && !otherMob.equals( myMob ) ) &&
+			    ( !myMob.isUnderAttack() && !otherMob.isUnderAttack() ) )
+			{
+				theWorld.moveMob( myMob.getKey(), otherMob.getCurrentLocation() );
+				if( otherMob.isAlive() )
+					myMob.respawn();
+				else
+					myMob.kill();
+			}
+		}
+	
+	}
+	
+	/**
+	 * This merges one state with another
+	 * @@param other The other state to use to merge with
+	 * @@param world The world object to place the data into
+	 */
+	public void merge( GameState other, World theWorld )
+	{
+		/**
+		 * Start off with the easy things, add all ponds
+		 * to this state which are not in the state.
+		 */
+		Iterator data = other.getCollection( GameState.POND );
+		while( data.hasNext() )
+		{
+			XYloc pondLoc = (XYloc)data.next();
+			if( !has( GameState.POND, pondLoc ) )
+				add( GameState.POND, pondLoc );
+		}
+		
+		/** 
+		 * Same thing for houses
+		 */
+		data = other.getCollection( GameState.HOUSE );
+		while( data.hasNext() )
+		{
+			House theHouse = (House)data.next();
+			if( !has( GameState.HOUSE, theHouse.getOwner() ) )
+			{
+				add( GameState.HOUSE, theHouse );
+				theWorld.placeHouse( theHouse );
+			}
+		}
+		
+		/**
+		 * For mechants, check to see if the size of the has
+		 * table is zero - this means that this is the joining state,
+		 * so it must add in the merchants
+		 */
+		if( myMerchants.size() == 0 )
+		{
+			data = other.getCollection( GameState.MERCHANT );
+			while( data.hasNext() )
+				add( GameState.MERCHANT, (Merchant)data.next() );
+		}
+		
+		/**
+		 * Same thing for monsters - no monsters means that this is a 
+		 * joining state, so the monsters must be added
+		 */
+		if( myMobs.size() == 0 )
+		{
+			data = other.getCollection( GameState.MOB );
+			while( data.hasNext() )
+			{
+				Mob theMob = (Mob)data.next();
+				add( GameState.MOB, theMob );
+				theWorld.moveMob( theMob.getKey(), theMob.getCurrentLocation() );
+			}
+		}
+		
+		/**
+		 * Final step - merge in the players
+		 */
+		data = other.getCollection( GameState.PLAYER );
+		while( data.hasNext() )
+		{
+			PlayerCharacter thePlayer = (PlayerCharacter)data.next();
+			if( !has( GameState.PLAYER, thePlayer.getId() ) )
+			{
+				add( GameState.PLAYER, thePlayer );
+				theWorld.placePlayer( thePlayer );
+			}
+		}
+	}
+	
+	/**
+	 * Private function used to stop a mob from attacking
+	 * @@param theMob The mob to attack
+	 */
+	private void stopMobAttack( Mob theMob )
+	{
+		Eoid targ = theMob.getTarget();
+		PlayerCharacter play = (PlayerCharacter)get( PLAYER, targ );
+		play.clearTargetData();
+		theMob.stopAttack();
+	}
+	
+	/** 
+	 * The opposite of stopMobAttack, this
+	 * causes a mob to attack someone
+	 * @@param theMob The mob to change
+	 * @@param targ The id of the player to start attacking
+	 */
+	private void startMobAttack( Mob theMob, Date ts, Eoid targ )
+	{
+		PlayerCharacter play = (PlayerCharacter)get( PLAYER, targ );
+		theMob.startAttackSilent( targ, ts );
+		play.registerTarget( theMob.getKey() );
+	}
+	
+	/**
+	 * This tells the gamestate that it needs to clear all the houses
+	 * it has from all players.
+	 */	
+	public void clearHouses()
+	{
+		Iterator myHouses = getCollection( HOUSE );
+		while( myHouses.hasNext() )
+		{
+			House tempHouse = (House)myHouses.next();
+			tempHouse.clearPlayers();
+		}
+	}
+	
+	/** 
+	 * Writes the GameState object out to output
+	 * @@param out The output object to write to
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+		out.writeObject( myPlayerId );
+		out.writeInt( myPartNum );
+		
+		// writeExternal has already been defined for the player cache object
+		out.writeObject( myPlayers );
+		
+		// Write out the time
+		out.writeInt( myTime );
+		
+		// Write out the configuration
+		out.writeObject( myConfig );
+				
+		// Write out the mobs, ponds, merchants, and houses.
+		out.writeObject( myMobs );
+		out.writeObject( myPonds );
+		out.writeObject( myMerchants );
+		out.writeObject( myHouses );		
+	}
+	
+	/**
+	 * Reads the GameState object in from input
+	 * @@param in The input object read from
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{
+		
+		myPlayerId = (Eoid)in.readObject();
+		myPartNum = in.readInt();
+		// read in the players and the time
+		myPlayers = (PlayerCache)in.readObject();
+		myTime = in.readInt();
+		myConfig = (WorldConfiguration)in.readObject();
+		
+		// Read back in mobs, ponds, houses, and merchants
+		myMobs = (HashMap)in.readObject();
+		myPonds = (Vector)in.readObject();
+		myMerchants = (HashMap)in.readObject();
+		myHouses = (HashMap)in.readObject();	
+	}		
+ }
+ 
+ 
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.15 2004/12/16 16:39:30 rjw2183 Exp rjw2183 $
+a95 8
+	 * Returns the location of the player that belongs to ths state.
+	 */
+	public XYloc getPlayerLoc()
+	{
+		return myPlayers.getPlayer( myPlayerId ).getLocation();
+	}
+	
+	/**
+d146 1
+a146 1
+	 * Returns the id of ther player associated with this state
+d148 1
+a148 1
+	public Eoid getPlayerId()
+d150 1
+a150 1
+		return myPlayerId;
+d603 2
+a604 2
+		PlayerCharacter myCopy = (PlayerCharacter)this.get( PLAYER, other.getPlayerId() );
+		PlayerCharacter otherCopy = (PlayerCharacter)other.get( PLAYER, other.getPlayerId() );
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.14 2004/12/14 17:22:24 rjw2183 Exp rjw2183 $
+d86 4
+d96 1
+a96 1
+	 * Returns the location of this player
+d211 1
+a211 4
+			{
+				// This is just here for completeness, since
+				// the GameSystem has direct access to the playerCache object, 
+				// it will never actually add aplayer to the cache using this method
+d608 3
+a610 4
+		// The exception to this is PvE combat, and that is becausethe mob
+		// needs to placed into combat asap to prevent starnge thing				
+		
+		
+d619 6
+a624 6
+                    if( !( otherCopy.isInCombat() && otherCopy.getTarget().equals( myPlayer.getTarget() )))
+                    {
+                        System.err.println( "Here" );
+			myPlayer.clearTargetData();
+                        myCopy.clearTargetData();
+                    }
+d630 5
+a634 5
+                    // The first check determines if the local copy 
+                    // of the player is in combat.  If so, he needs
+                    // to be removed from combat with whatever he was 
+                    // fighting.  
+                     clearPlayerTarget( myCopy );
+d636 3
+a638 3
+                     // Check to see if the player needs to be removed from a house.
+                     if( myCopy.isInHouse() && !otherCopy.isInHouse() )
+                            theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+d640 2
+a641 2
+                     // Warp the local copy to whereever the plays says it is
+		     theWorld.performWarp( myCopy.getId(), otherCopy.getLocation() );
+d643 7
+a649 7
+                     // Finally, check houses again.  
+		     if( otherCopy.isInHouse() )
+		     {										
+                        if( myCopy.isInHouse() )
+                            theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+			theWorld.movePlayerIntoHouse( myCopy.getId(), otherCopy.getHouse() );									
+		      }
+d653 1
+a653 1
+                    if( myCopy.isInHouse() )
+d655 4
+a658 3
+                    // This is when the fragment copy is in combat.
+		    if( otherCopy.hasMobTarget() )
+                    {                                  
+d674 1
+a674 1
+                                        // First thing if need be, clear out the target information
+d696 11
+a706 11
+                                    }                                    
+                                }
+                                else
+                                {
+                                    // This is the case where the fragment copy is in combat
+                                    // and so is the player copy.  In this case the rules are 
+                                    // a bit different, because unlike pve combat, pvp 
+                                    // combat deals with 2 players.  So the rule of thumb here
+                                    // is to basically do what the fragment says, and then let
+                                    // later fragments deal with it.
+                                    Eoid theTarget = (Eoid)otherCopy.getTarget();
+d708 4
+a711 4
+                                    // Only do this is (1) the target is not the player
+                                    // associated with the local fragment, or (2) the target
+                                    // of the player associated with the local fragment
+                                    if( !myPlayerId.equals( theTarget ) &&
+d713 2
+a714 2
+                                    {
+                                        // The first thing to to, if need be is to 
+d730 2
+a731 2
+                                    }                                    
+                                }
+d733 1
+a733 1
+			}
+d747 1
+a747 1
+        // This is a privae function used to clear the target information
+d785 1
+d794 2
+a795 2
+	 private void checkItems( GameState other, int which, World theWorld )
+	 {
+d826 1
+a826 1
+	 }
+d935 1
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.13 2004/12/10 02:29:16 rjw2183 Exp rjw2183 $
+d621 2
+a622 1
+                        myPlayer.clearTargetData();
+d748 1
+a748 1
+        private void clearPlayerTarget( PlayerCharacter thePlayer )
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.12 2004/11/11 04:28:40 rjw2183 Exp rjw2183 $
+d613 15
+a627 1
+		if( !otherCopy.equals( myCopy ) )
+d629 5
+a633 20
+			// If my player was previously engaged in combat with the player owned by this
+			// fragment of the global state, check to make sure that player is still
+			// fighting my player.  If not, remove my player from combat with that player
+			if( myPlayer.isInCombat() && myPlayer.getTarget().equals( otherCopy.getId() ) )
+                        {
+                            if( !( otherCopy.isInCombat() && otherCopy.getTarget().equals( myPlayer.getTarget() )))
+                            {
+                                myPlayer.clearTargetData();
+                                myCopy.clearTargetData();
+                            }
+                        }
+			
+			// Case 1: The global state player is not in combat.
+                        if( !otherCopy.isInCombat() )
+			{
+                            // The first check determines if the local copy 
+                            // of the player is in combat.  If so, he needs
+                            // to be removed from combat with whatever he was 
+                            // fighting.  
+                                clearPlayerTarget( myCopy );
+d635 3
+a637 3
+                                // Check to see if the player needs to be removed from a house.
+				if( myCopy.isInHouse() && !otherCopy.isInHouse() )
+					theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+d639 2
+a640 2
+                                // Warp the local copy to whereever the plays says it is
+				theWorld.performWarp( myCopy.getId(), otherCopy.getLocation() );
+d642 15
+a656 13
+                                // Finally, check houses again.  
+				if( otherCopy.isInHouse() )
+				{										
+					if( myCopy.isInHouse() )
+						theWorld.removePlayerFromHouse( myCopy.getId(), myCopy.getHouse() );
+					theWorld.movePlayerIntoHouse( myCopy.getId(), otherCopy.getHouse() );									
+				}				
+			}
+			else
+			{
+				// This is when the fragment copy is in combat.
+				if( otherCopy.hasMobTarget() )
+                                {
+d671 1
+a671 1
+                                    {
+d675 1
+a675 1
+                                        {
+d732 1
+a732 1
+		}	
+d749 33
+a781 17
+          if( thePlayer.isInCombat() )
+          {
+            if( thePlayer.hasMobTarget() )
+            {
+                MobKey theKey = (MobKey)thePlayer.getTarget();
+                Mob theMob = (Mob)get( GameState.MOB, theKey );
+                theMob.stopAttack();
+            }
+            else
+            {
+                Eoid theId = (Eoid)thePlayer.getTarget();
+                PlayerCharacter pChar = 
+                (PlayerCharacter)get( GameState.PLAYER, theId );
+                pChar.clearTargetData();
+            }
+            thePlayer.clearTargetData();  
+          }
+d815 2
+a816 2
+				if( which == HOUSE )
+					theWorld.placeHouse( (House)theItem );
+d818 3
+a820 1
+					theWorld.placePlayer( (PlayerCharacter)theItem );				
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.11 2004/10/21 02:47:24 rjw2183 Exp rjw2183 $
+a358 28
+	/**
+	 * This takes two states and merges them together.  
+	 * 
+	 * @@param newState The first state to merge
+	 * @@param oldState The second state to merge
+	 */
+	public static GameState mergeStates( GameState newState, GameState oldState )
+	{		
+		GameState retVal = new GameState();
+		
+		// First establish the base state, which uses all
+		// the old 
+		retVal.copyCollection( MOB, oldState );
+		retVal.copyCollection( POND, oldState );
+		retVal.copyCollection( MERCHANT, oldState );
+		retVal.copyCollection( HOUSE, oldState );
+		retVal.myPlayers.appendPlayers( oldState.myPlayers );
+		
+		retVal.copyCollection( POND, newState );		
+		retVal.copyCollection( HOUSE, newState );
+		retVal.myPlayers.appendPlayers( newState.myPlayers );
+		
+		retVal.setConfig( oldState.getConfig() );
+		retVal.setId( oldState.getPlayerId() );
+		
+		return retVal;
+	}
+	
+d473 15
+a487 3
+		{
+			GameState otherState = (GameState)other;
+			retVal = ( myPlayers.checkStateData( otherState.myPlayers ) &&
+d491 1
+a491 1
+				   myMobs.equals( otherState.myMobs ) );												   
+d576 8
+a583 2
+		theItems = myMerchants.values().iterator(); while( theItems.hasNext() ) { Merchant theMerch =
+	(Merchant)theItems.next(); theMerch.setListener( merchList ); theMerch.scheduleNextMessage(); } }
+d586 6
+a591 4
+	 * This synchronizes, or fixes the states
+	 * if need be it also sets the emergencyReport variable to true	 
+	 * @@param other The state to sync with
+	 * @@param theWorld the world object to work on
+d603 1
+a603 4
+		// Step 2: check the mobs	
+		checkMobs( other, theWorld );	
+		
+		// Step 3: Check the player
+d608 2
+a609 1
+		// needs to placed into combat asap to prevent starnge thing
+d615 14
+a628 1
+			if( !otherCopy.isInCombat() )
+d630 5
+a634 11
+				// If the state copy is not in comabt, the rule is, drop
+				// my copy from combat  (if need be) overwrite the player, and
+			        // then move him to wherever the state says it is
+				if( myCopy.isInCombat() )
+				{
+					Eoid pId = (Eoid)myCopy.getTarget();
+					PlayerCharacter theTarget = 
+						(PlayerCharacter)get( PLAYER, pId );
+					myCopy.clearTargetData();
+					theTarget.clearTargetData();
+				}								
+d636 1
+d639 2
+a640 1
+					
+d643 1
+d649 1
+a649 3
+				}
+				
+				add( PLAYER, otherCopy );
+d653 76
+a728 38
+				
+				if( !otherCopy.hasMobTarget() )
+				{				
+					
+					Eoid theTarget = (Eoid)otherCopy.getTarget();
+					
+					/* If I think I am fighting the player, but it says it is fighting someone else
+					 * drop me from combat and move then
+					 */
+					if( otherCopy.getId().equals( myPlayer.getTarget() ) &&
+					    !theTarget.equals( myPlayer.getId() ) )
+					{					
+                                                System.err.println( "In the first case");
+                                                myPlayer.clearTargetData();
+						theWorld.performWarp( theTarget, otherCopy.getLocation() );
+						theWorld.performWarp( myCopy.getId(), otherCopy.getLocation() );
+						
+                                                myCopy.clearTargetData();
+                                                myCopy.registerTarget( theTarget );
+						
+                                                ((PlayerCharacter)get( PLAYER, theTarget )).clearTargetData();
+                                                ((PlayerCharacter)get( PLAYER, theTarget )).registerTarget( otherCopy.getId() );
+					}
+					else if( !theTarget.equals( myPlayerId ) &&
+					       ( !theTarget.equals( myPlayer.getTarget() ) ) )
+					{
+                                                System.err.println( "In the second case.");
+                                                theWorld.performWarp( theTarget, otherCopy.getLocation() );
+						theWorld.performWarp( myCopy.getId(), otherCopy.getLocation() );
+						
+                                                myCopy.clearTargetData();
+                                                myCopy.registerTarget( theTarget );
+                                                
+                                                ((PlayerCharacter)get( PLAYER, theTarget )).clearTargetData();
+						((PlayerCharacter)get( PLAYER, theTarget )).registerTarget( otherCopy.getId() );
+					}
+					
+				}
+a730 1
+
+d734 1
+a734 1
+		// Finally compare my copy of my player to the other's copy of my player.
+d738 4
+a741 1
+			emergencyReport = true;				
+d744 22
+d795 1
+a795 1
+			if( !this.has( which, theKey ) && !theKey.equals( myPlayerId ) )
+d800 1
+a800 1
+				else if( which == PLAYER )				
+d810 1
+a810 1
+	 * @@param other The other state to compare mobs
+d814 18
+a831 47
+	{
+		/* In general, the other state is given the benefit of
+		 * the doubt when determinng what to do when a mobs are not equal.
+		 * Why?  Because it really doesn't matter who gets the benefit of the doubt
+		 * But the assumption that the unit takes it that it waas partitioned off from the main
+		 * session, and therefore this datra more than likely represent the correct state of the
+		 * session.  The rules are explained throughout the function
+		 */		 
+		 // First step: get the mobs
+		 Iterator theMobs = other.getCollection( MOB );
+		 while( theMobs.hasNext() )
+		 {
+		 	MobKey theKey = ((Mob)theMobs.next()).getKey();
+			
+			Mob myMob = (Mob)this.get( MOB, theKey );
+			Mob otherMob = (Mob)other.get( MOB, theKey );
+			
+			// Special case which is this is being called for a unit which is joining a session
+			if( !has( GameState.MOB, otherMob.getKey() ) )
+			{				
+				add( GameState.MOB, otherMob );
+				theWorld.moveMob( otherMob.getKey(), otherMob.getCurrentLocation() );
+			}
+			// Only do this is these guys are not equal
+			else if( !myMob.equals( otherMob ) && otherMob != null )
+			{
+				// First check: is the other state mob not in combat?
+				if( !otherMob.isUnderAttack() )
+				{					
+					// If my copy of the mob is attacking someone, stop that attack
+					if( !myMob.isUnderAttack() ||
+					     myMob.isUnderAttack() && !myPlayerId.equals( myMob.getTarget() )  )
+					{						
+						if( myMob.isUnderAttack() )
+							stopMobAttack( myMob );
+						
+						// Move the mob to where the incoming state says it is
+						theWorld.moveMob( myMob.getKey(), otherMob.getCurrentLocation() );
+						
+						// Finally, if the other copy of the mob is dead, kill my copy, 
+						// otherwise, raise it.
+						if( !otherMob.isAlive() )
+							myMob.kill();
+						else
+							myMob.respawn();
+					}					
+				}
+d833 1
+a833 33
+				{									
+					/*
+					 * This is the case where the other state's copy of the mob is in combat.
+					 * There are two things to take into consideration.  The first is that
+					 * my copy of the mob is not in combat, and the other state says that I am not
+					 * not fighting this mob.  The other case is that both copies of the mob are in combat.
+					 * In this case, the timeStamps of when combat began is compared, and whichever is later
+					 * gets priority.  In both cases, the end result is the same, the mob is placed into combat
+					 * with whomever the state copy says it is
+					 */
+					if( 
+				 		( !myMob.isUnderAttack() && !myPlayerId.equals( otherMob.getTarget() ) ) ||
+						(  myMob.getCombatTimeStamp().after( otherMob.getCombatTimeStamp() ) )
+					)
+					{
+						if( !myPlayerId.equals( otherMob.getTarget() ) )
+						{													       
+						        if( myMob.isUnderAttack() )
+								stopMobAttack( myMob );
+							
+							if( !myMob.isAlive() )
+								myMob.respawn();
+								
+							/* Move the mob and the player, and place them into combat with each other */							
+							PlayerCharacter play = 
+								(PlayerCharacter)get( PLAYER, otherMob.getTarget() );
+							theWorld.moveMob( myMob.getKey(), otherMob.getCurrentLocation() );
+							theWorld.performWarp( play.getId(), myMob.getCurrentLocation() );
+							play.registerTarget( myMob.getKey() );
+							myMob.startAttackSilent( play.getId(), otherMob.getCombatTimeStamp() );							
+						}
+					}
+				}
+d835 2
+a836 1
+		 }			 		 	
+d840 74
+d970 6
+a975 40
+		
+		// Write out the mobs
+		int theSize = myMobs.size();		
+		Iterator theValues = myMobs.values().iterator();
+		out.writeInt( theSize );
+		while( theValues.hasNext() )
+		{
+			Mob tempMob = (Mob)theValues.next();
+			out.writeObject( tempMob );
+		}
+		
+		// Write out the ponds
+		theSize = myPonds.size();				
+		theValues = myPonds.iterator();
+		out.writeInt( theSize );
+		while( theValues.hasNext() )
+		{
+			XYloc tempLoc = (XYloc)theValues.next();
+			out.writeObject( tempLoc );
+		}
+		
+		// Write out the merchants
+		theSize = myMerchants.size();		
+		theValues = myMerchants.values().iterator();
+		out.writeInt( theSize );
+		while( theValues.hasNext() )
+		{
+			Merchant tempMerch = (Merchant)theValues.next();
+			out.writeObject( tempMerch );
+		}
+		
+		// Write out the houses
+		theSize = myHouses.size();		
+		theValues = myHouses.values().iterator();
+		out.writeInt( theSize );
+		while( theValues.hasNext() )
+		{
+			House tempHouse = (House)theValues.next();
+			out.writeObject( tempHouse );
+		}		
+a991 15
+		// Read in the mobs
+		int theSize = in.readInt();
+		for( int i = 0; i < theSize; i++ )
+		{
+			Mob tempMob = (Mob)in.readObject();
+			add( MOB, tempMob );
+		}
+		
+		// Read in the ponds locs
+		theSize = in.readInt();
+		for( int i = 0; i < theSize; i++ )
+		{
+			XYloc tempLoc = (XYloc)in.readObject();
+			add( POND, tempLoc );
+		}
+d993 5
+a997 15
+		// Read in the merchants
+		theSize = in.readInt();
+		for( int i = 0; i < theSize; i++ )
+		{
+			Merchant tempMerch = (Merchant)in.readObject();
+			add( MERCHANT, tempMerch );
+		}
+		
+		// Read in the houses
+		theSize = in.readInt();		
+		for( int i = 0; i < theSize; i++ )
+		{
+			House tempHouse = (House)in.readObject();
+			add( HOUSE, tempHouse );
+		}		
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.10 2004/09/24 03:43:35 rjw2183 Exp rjw2183 $
+a367 2
+		try
+		{		
+d382 1
+a383 6
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+			System.exit( 1 );
+		}
+d575 20
+a594 1
+	
+a602 1
+			
+a605 1
+		checkItems( other, PLAYER, theWorld );
+d607 1
+d609 1
+d703 1
+a703 3
+			emergencyReport = true;
+		
+				
+d729 7
+a735 2
+							
+			if( !this.has( which, theKey ) )
+d771 6
+d778 1
+a778 1
+			if( !myMob.equals( otherMob ) )
+@
+
+
+1.10
+log
+@Added the synchronize function.
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.9 2004/09/23 03:59:57 rjw2183 Exp rjw2183 $
+d301 1
+a301 1
+				myPlayers.validKey( (Eoid)theKey );
+d303 1
+d447 2
+a448 2
+		while( dataValues.hasNext() )
+			add( which, dataValues.next() );			
+d506 1
+d510 1
+a510 1
+			retVal = ( myPlayers.equals( otherState.myPlayers ) &&
+d514 1
+a514 1
+				   myMobs.equals( otherState.myMobs ) );											   
+d591 1
+a591 1
+	
+d608 1
+d626 4
+d631 1
+d633 6
+a638 1
+					theWorld.movePlayerIntoHouse( myCopy.getId(), other.getHouseId() );
+d655 2
+a656 1
+						myPlayer.clearTargetData();
+d659 6
+a664 2
+						myCopy.registerTarget( theTarget );
+						((PlayerCharacter)get( PLAYER, theTarget )).registerTarget( myCopy.getId() );
+d669 2
+a670 1
+						theWorld.performWarp( theTarget, otherCopy.getLocation() );
+d672 6
+a677 2
+						myCopy.registerTarget( theTarget );
+						((PlayerCharacter)get( PLAYER, theTarget )).registerTarget( myCopy.getId() );
+d686 2
+a687 1
+		// Finall compare my copy of my player to the other's copy of my player.
+d692 1
+d706 2
+a707 1
+	 	Iterator items = other.getCollection( which );
+d709 1
+a709 2
+		{
+			
+d713 7
+a719 1
+			Object theKey = items.next();
+a721 1
+				Object theItem = other.get( which, theKey );
+d725 4
+a728 5
+				else if( which == PLAYER )
+					theWorld.placePlayer( (PlayerCharacter)theItem );
+			}
+		}
+	 		
+d746 1
+a746 2
+		 */
+		 
+d751 1
+a751 1
+		 	MobKey theKey = (MobKey)theMobs.next();
+d761 1
+a761 1
+				{
+d763 16
+a778 14
+					if( myMob.isUnderAttack() && !myPlayerId.equals( myMob.getTarget() ) )
+						stopMobAttack( myMob );
+																	
+					
+					// if the other copy of the mob is dead, kill my copy, otherwise, 
+					// raise it
+					if( !otherMob.isAlive() )
+						myMob.kill();
+					else
+						myMob.respawn();
+					
+					// Finally, move the mob to wherever the other state says it is
+					theWorld.moveMob( myMob.getKey(), otherMob.getCurrentLocation() );	
+					
+d781 1
+a781 2
+				{
+					
+d793 1
+a793 1
+						(  myMob.getCombatTimeStamp().before( otherMob.getCombatTimeStamp() ) )
+d797 1
+a797 1
+						{							
+d800 5
+a804 1
+							/* Move the mob and the player, and place them into combat with each other */
+d809 2
+a810 1
+							startMobAttack( myMob, otherMob.getCombatTimeStamp(), play.getId() );
+d815 1
+a815 1
+		 }		
+d843 14
+@
+
+
+1.9
+log
+@ACtually, I did not hign here
+,
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.8 2004/09/16 02:39:28 rjw2183 Exp $
+d489 5
+a498 12
+	 * This function checks the "other" state to see if it is consistent with
+	 * this state.  If it is not, it makes changes to the state in accordance
+	 * with a set of rules.  If the state is changed, this function will return a 
+	 * value of true.  If no changes are made, this returns a value of false.
+	 * @@param other The other gamestate to compare to
+	 */
+	public boolean checkState( GameState other )
+	{
+		return true;
+	}
+	
+	/**
+d556 2
+a557 1
+	 * Removes all mappins from the player cache
+d559 1
+a559 1
+	public void purgePlayers()
+d561 1
+a561 1
+		myPlayers.purge();
+d565 1
+a565 2
+	 * Refreshes the player's timeout timer
+	 * @@param: playerId The id of the player who needs to be refreshed
+d567 1
+a567 1
+	public void refreshPlayer( Eoid playerId )
+d569 9
+a577 1
+		myPlayers.refreshTimer( playerId );
+d579 1
+d589 2
+a590 1
+		PlayerCharacter myPlayer = (PlayerCharacter)this.get( PLAYER, myPlayerId );
+d592 3
+a594 1
+		// First thing, check the ponds, houses, and players
+a595 2
+		checkItems( other, HOUSE, theWorld );
+		checkItems( other, PLAYER, theWorld );
+d597 33
+a629 22
+		//Mobs, these a bit more complicated, since there is quite a bit that can be done here.
+		// There are 4 conditions to look at for each monster:
+		// (a)State copy and mob copy are not in combat
+		// (b)State copy is in combat, but ad copy is not
+		// (c)State copy is not in combat, but the ad copy is
+		// (d)Both copies are in combat
+		// For case (a) the state copy of the mob is merely moved to the wherever the ad copy is
+		// In case (b) the state copy is dropped from combat and moved
+		// In case (c) the state copy is moved and placed into combat
+		// For case (d) the system looks at the timestamps associated with the
+		// combat, and gives the one with the latest valu priority
+		Iterator theMobs = other.getCollection( MOB );
+		while( theMobs.hasNext() )
+		{
+			MobKey currentKey = (MobKey)theMobs.next();
+			Mob stateCopy = (Mob)this.get( MOB, currentKey );
+			Mob adCopy = (Mob)other.get( MOB, currentKey );
+			if( !stateCopy.equals( adCopy ) )
+			{
+				// Case A
+				if( !stateCopy.isUnderAttack() && !adCopy.isUnderAttack() )
+					moveAndChange( currentKey, adCopy.getCurrentLocation(), theWorld, adCopy.isAlive() );				
+d631 16
+a646 17
+				// Case B
+				else if( stateCopy.isUnderAttack() && !adCopy.isUnderAttack() )
+				{
+					// Slighty modified from the original description:
+					// the drop of the mob and player from combat is done only if
+					// the mob is not fighting the player owned by the local state
+					Eoid mobTarget = stateCopy.getTarget();
+					if( !myPlayerId.equals( mobTarget ) )
+					{
+						PlayerCharacter thePlayer =
+						        (PlayerCharacter)get( PLAYER, mobTarget );
+						
+						if( thePlayer != null )
+							thePlayer.clearTargetData();
+						
+						moveAndChange( currentKey, adCopy.getCurrentLocation(), theWorld, adCopy.isAlive() );
+						
+d648 2
+a649 7
+				}
+				
+				//Case C
+				else if( !stateCopy.isUnderAttack() && adCopy.isUnderAttack() )
+				{
+					Eoid theTarget = adCopy.getTarget();
+					if( !myPlayerId.equals( theTarget ) )
+d651 4
+a654 3
+						moveAndChange( currentKey, adCopy.getCurrentLocation(), theWorld, adCopy.isAlive() );
+						startCombat( theTarget, adCopy.getCurrentLocation(), theWorld, currentKey, 
+							     adCopy.getCombatTimeStamp() );
+d658 1
+a658 19
+				
+				// Case D
+				else
+				{
+					Date stateTs = stateCopy.getCombatTimeStamp();
+					Date adTs = stateCopy.getCombatTimeStamp();
+					if( adTs.after( stateTs ) )
+					{
+						// Drop the current player from combat
+						Eoid target = stateCopy.getTarget();
+						((PlayerCharacter)this.get( PLAYER, target )).clearTargetData();
+						stateCopy.stopAttack();
+						
+						// Start combat with the oone in the ad's copy
+						moveAndChange( currentKey, adCopy.getCurrentLocation(), theWorld, adCopy.isAlive() );
+						startCombat( adCopy.getTarget(), adCopy.getCurrentLocation(), theWorld, currentKey, 
+							     adCopy.getCombatTimeStamp() );
+					}
+				}
+d660 2
+a661 2
+		}
+		
+d663 4
+a666 2
+		PlayerCharacter op = (PlayerCharacter)other.get( PLAYER, myPlayerId );
+		if( op == null || !op.equals( myPlayer ) )
+d668 1
+a668 21
+			
+	}
+	
+	// These 2 functions are just helper functions for the synchronization.  
+	// The first moves the mob to a new location and either raises ot kills it, while the
+	// second warps a player to a locaton and starts them attacking a mob in that location
+	private void moveAndChange( MobKey theKey, XYloc theLoc, World theWorld, boolean isAlive )
+	{
+		theWorld.moveMob( theKey, theLoc );
+		if( isAlive )
+			((Mob)this.get( MOB, theKey )).respawn();
+		else
+			((Mob)this.get( MOB, theKey )).kill();
+	}
+	
+	private void startCombat( Eoid pId, XYloc theLoc, World theWorld, MobKey theMob, Date theTs )
+	{
+		PlayerCharacter thePlayer = (PlayerCharacter)this.get( PLAYER, pId );
+		theWorld.performWarp( pId, thePlayer.getLocation(), theLoc );
+		((Mob)this.get( MOB, theMob )).startAttackSilent( pId, theLoc, theTs );
+		thePlayer.registerTarget( theMob );
+d701 107
+a807 1
+
+@
+
+
+1.8
+log
+@Reworked the synchronize function a bit
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.7 2004/09/10 02:32:56 rjw2183 Exp rjw2183 $
+d157 1
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.6 2004/08/11 20:06:36 rjw2183 Exp rjw2183 $
+d20 1
+d585 2
+a586 2
+	{
+		
+d588 140
+a727 2
+	}
+	
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.5 2004/07/22 19:33:30 rjw2183 Exp rjw2183 $
+a584 4
+		emergencyReport = false;
+		
+		// This goes through each item on a step by step basis,
+		// fixing on the things which need to be fixed.
+a585 205
+		// Ponds:  If the ponds differ, it means that there are ponds
+		// in one state and not the other.  What this does is to merge
+		// all nonexisting ponds from the other state into the current one.
+		// If there are ponds in this state which are not in the other state, 
+		// no action is taken because in the other units, these ponds will be added 
+		// automatically
+		if( !myPonds.equals( other.myPonds ) )
+		{
+			Iterator ponds = other.getCollection( POND );
+			while( ponds.hasNext() )
+				add( POND, ponds.next() );
+		} 
+		
+		// Merchants: One of the few times that the  benefit of the doubt is given
+		// to the other state. In theory, the merchants can not be changed since
+		// users can not change their location ot their type.  Therefore, if
+		// the merchants are not the same, this state will clear its copy of the merchants
+		// and then simply add the ones from the other state
+		if( !myMerchants.equals( other.myMerchants ) )
+		{
+			myMerchants.clear();
+			copyCollection( MERCHANT, other );	
+		}
+		
+		// Houses:  A few words here.  Right now, houses just sit there.  Since 
+		// there can only be one house per player, and players are not allowed to remove
+		// their houses, the only way the houses could be different is if new ones were 
+		// added.  Therefore, any houses which are not currently in the hashmap
+		// are added, but no action is taken if there are houses that are not in the other
+		// state since these will be added eventually
+		if( !myHouses.equals( other.myHouses ) )
+		{
+			Iterator houses = other.getCollection( HOUSE );
+			while( houses.hasNext() )
+			{
+				House tempHouse = (House)houses.next();
+				if( !has( HOUSE, tempHouse.getOwner() ) )
+				{
+					add( HOUSE, houses.next() );
+					theWorld.placeHouse( tempHouse );
+				}
+			}
+		}
+			
+		// Mobs are just bundles of pure joy. This is because so much can happen with them, namely
+		// the fact that they can be in combat or not.  This is the first portion of s 2 stage check
+		// that involves them.  This check is for when the mobs are not in combat with a player.  
+		// The purpose here is to check on mobs which are not in combat, to determine that their location
+		// and alive status is the same.  If not, the mobs is set to whatever the is in the other state
+		// again this gives the incoming state the benefit of the doubt, but that's fine cosidering that
+		// the mobs changed by this are not under attack.  Nothing is done here about mobs which are in combat
+		// mainly because a mob only knows that is under attack, and doesn't know who is attacking it, since
+		// this is handled by the game system. 
+		if( !myMobs.equals( other.myMobs ) )
+		{
+			Iterator mobs = other.getCollection( MOB );
+			while( mobs.hasNext() )
+			{
+				Mob otherMob = (Mob)mobs.next();
+				Mob thisMob = (Mob)get( MOB, otherMob.getKey() );
+				if( thisMob != null && 
+				    !thisMob.isUnderAttack() && !otherMob.isUnderAttack() )
+				{
+					XYloc loc = otherMob.getCurrentLocation();
+					theWorld.moveMob( thisMob.getKey(), loc );
+					if( !otherMob.isAlive() )
+						thisMob.kill();
+					else
+						thisMob.respawn();
+				}
+			}
+		}
+		
+		
+		// Players: Yes, the player.  Perhaps the single most difficult thing to synchronize,
+		// players are probably the biggest PITA's.   However, there are some rules to follow
+		// which are important.  First, only 2 players are checked in this situation.  The first player
+		// check is the state's copy of my player.  This state wants to ensure that all is kosher with 
+		// the incoming copy of the player.  If not, the state requests what's known as an emergency 
+		// broadcast, which means "broadcast out my state ASAP".  The other player it checks is the state's
+		// player, since only the device which owns a player can modify it.
+		
+		// Ok, the first thing to do is to check the incoming state's version of the player
+		// The thing to remember here is that the player has no idea what type of mob
+		// he is fighting on the other state.  Rather, all that matters is the key.		
+		PlayerCharacter thePlayer = other.myPlayers.getPlayer( myPlayerId );
+		PlayerCharacter myPlayer = myPlayers.getPlayer( myPlayerId );
+		if( thePlayer == null || !myPlayer.equals( thePlayer ) )
+			emergencyReport = true;
+			
+		// And now, we check the compare this state's player to the the local copy.
+		// First, copy over the non target data
+		PlayerCharacter stateCopy = other.myPlayers.getPlayer( other.getPlayerId() );
+		PlayerCharacter myCopy = myPlayers.getPlayer( other.getPlayerId() );
+		if( myCopy != null && !myCopy.equals( stateCopy ) )
+		{
+			// Warp the player (locally) to the spot listed in the incoming state's copy
+			theWorld.performWarp( myCopy.getId(), myCopy.getLocation(), stateCopy.getLocation() );
+			// Copy over non combat data
+			myCopy.copyData( stateCopy ); 
+			if( !myCopy.equals( stateCopy ) )
+			{
+				//They are still not equal, so the that means something is wrong with
+				// the targets, considering that we just did a copy call on the players
+				// and they now share all non combat data
+				
+				
+				// the first check is to see if the state copy is not in combat, but
+				// the local is.  Drop the local copy from combat
+				if( myCopy.isInCombat() && !stateCopy.isInCombat() )
+				{
+					if( myCopy.hasMobTarget() )
+					{
+						MobKey theKey = (MobKey)myCopy.getTarget();
+						Mob theMob = (Mob)get( MOB, theKey );
+						theMob.stopAttack( myCopy.getId() );
+					}
+					else
+					{
+						Eoid playerKey = (Eoid)myCopy.getTarget();
+						PlayerCharacter pc = myPlayers.getPlayer( playerKey );
+						if( pc != null && myCopy.getId().equals( (Eoid)pc.getTarget() ) )
+						     pc.clearTargetData(); 
+					}
+					myCopy.clearTargetData();
+				}					
+				else
+				{
+					// Ok, if we're here, this means that the copies are both in combat
+					// and the targets are different.  So now a challenge begins.
+					
+					// First things first, drop myCopy from combat.
+					if( myCopy.hasMobTarget() )
+					{
+						MobKey theKey = (MobKey)myCopy.getTarget();
+						Mob theMob = (Mob)get( MOB, theKey );
+						theMob.stopAttack( myCopy.getId() ); 
+					}
+					else
+					{
+						Eoid playerKey = (Eoid)myCopy.getTarget();
+						PlayerCharacter pc = myPlayers.getPlayer( playerKey );
+						if( pc != null && myCopy.getId().equals( (Eoid)pc.getTarget() ) )
+							pc.clearTargetData();
+					}
+					myCopy.clearTargetData();					
+									
+					// Now place that player in combat with the correct target
+					if( stateCopy.hasMobTarget() )
+					{
+						// Mob target:  This one is pretty easy
+						// just register him with the mob
+						MobKey theKey = (MobKey)stateCopy.getTarget();
+						Mob theMob = (Mob)get( MOB, theKey );
+						theMob.startAttackSilent( myCopy.getId(), myCopy.getLocation() );
+						myCopy.registerTarget( theKey );
+					}					
+					else
+					{
+						// Players this one isa bit tricky
+						// some checks have to be made here.
+						// The first check is that if this player claims he is fighting
+						// me, then make sure I am fighting him.  Otherwise, make sure
+						// this guy claims he is not fight my target
+						myPlayer = myPlayers.getPlayer( myPlayerId );
+						if( ( stateCopy.getId().equals( myPlayer.getTarget() ) && 
+						    ( stateCopy.getTarget().equals( myPlayer.getId() ) ) ) ||
+						     !stateCopy.getTarget().equals( myPlayer.getTarget() ) ) 
+						{
+							Eoid id = (Eoid)stateCopy.getTarget();
+							thePlayer = myPlayers.getPlayer( id );
+							myCopy.registerTarget( id );
+							if( thePlayer != null )
+								thePlayer.registerTarget( myCopy.getId() );
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			myPlayers.addPlayer( stateCopy );
+			if( stateCopy.isInCombat() )
+			{
+				if( stateCopy.hasMobTarget() )
+				{
+					MobKey theKey = (MobKey)stateCopy.getTarget();
+					Mob theMob = (Mob)get( MOB, theKey );
+					theMob.startAttackSilent( stateCopy.getId(), stateCopy.getLocation() );
+				}
+				else
+				{
+						myPlayer = myPlayers.getPlayer( myPlayerId );
+						if( ( stateCopy.getId().equals( myPlayer.getTarget() ) && 
+						    ( stateCopy.getTarget().equals( myPlayer.getId() ) ) ) ||
+						     !stateCopy.getTarget().equals( myPlayer.getTarget() ) ) 
+						{
+							Eoid id = (Eoid)stateCopy.getTarget();
+							thePlayer = myPlayers.getPlayer( id );							
+							if( thePlayer != null )														
+								thePlayer.registerTarget( myCopy.getId() );
+						}
+				}
+			}
+		}
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.4 2004/07/16 18:35:43 rjw2183 Exp rjw2183 $
+d22 1
+d48 2
+a49 1
+					   // to be resolved asap.					     
+d57 1
+a57 1
+	public GameState( Game theHandle, int theTime, Eoid playerId )
+d64 1
+a64 1
+		myPlayers = new PlayerCache();
+d69 1
+d82 14
+a95 1
+		myPlayers = new PlayerCache();
+d130 18
+d163 3
+a165 6
+	/**
+	 * Returns a reference to the this state's playercache.
+	 * The reason this is done is because this allow the GameSystem
+	 * to use the function associated with the PlayerCache class, but
+	 * any changes made to the cache will be directly change in the state
+	 * object.
+d167 1
+a167 1
+	public PlayerCache getCache()
+d169 1
+a169 1
+		return myPlayers;
+d171 1
+a171 1
+	
+d296 6
+a301 2
+		{			
+			case MOB:
+d338 1
+a338 2
+				// Nothing here, since there is no functionality 
+				// like this in the player cache object, none wil be added
+d365 2
+d374 1
+a374 1
+		retVal.getCache().appendPlayers( oldState.getCache() );
+d376 1
+a376 1
+		retVal.copyCollection( POND, newState );
+d378 1
+a378 1
+		retVal.getCache().appendPlayers( newState.getCache() );
+d381 7
+d404 6
+d524 54
+d582 1
+a582 2
+	 */
+	 
+d675 1
+a675 1
+		PlayerCharacter thePlayer = other.getCache().getPlayer( myPlayerId );
+d682 1
+a682 1
+		PlayerCharacter stateCopy = other.getCache().getPlayer( other.getPlayerId() );
+d807 1
+d868 1
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.3 2004/07/06 19:58:30 rjw2183 Exp rjw2183 $
+d476 1
+a476 1
+	 * if need be it also sets the emergencyReport variable to true
+d478 1
+d480 2
+a481 1
+	public void synchronize( GameState other )
+d522 8
+a529 1
+				add( HOUSE, houses.next() );
+d552 1
+a552 1
+					thisMob.updateLocation( loc );
+a560 1
+
+d562 7
+d570 124
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.2 2004/07/01 19:49:55 rjw2183 Exp rjw2183 $
+d45 3
+d52 2
+a53 1
+	 & @@param theTime  The initail time of the game
+d55 1
+a55 1
+	public GameState( Game theHandle, int theTime )
+d65 2
+d107 23
+d178 1
+a178 1
+				myPlayers.addCharacter( 
+d265 1
+a265 6
+		{
+			case PLAYER: 
+			{	
+				retVal = myPlayers.checkPlayer( (Eoid)theKey );
+			}
+			break;
+d332 2
+d338 1
+d342 1
+d348 1
+d350 39
+d396 1
+a396 4
+		{
+			Object data = dataValues.next();
+			add( which, data );			
+		}
+d409 113
+d523 35
+d565 2
+d624 2
+d655 1
+a655 1
+		theSize = in.readInt();
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id: GameState.java,v 1.1 2004/06/29 20:00:03 rjw2183 Exp rjw2183 $
+d316 1
+d333 11
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d10 1
+a10 1
+ * @@version: $Id$
+d42 3
+a44 1
+	private int myTime;
+d60 1
+d77 16
+d346 3
+d400 1
+a400 1
+		
+@

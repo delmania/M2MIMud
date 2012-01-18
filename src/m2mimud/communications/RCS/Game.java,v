@@ -1,0 +1,699 @@
+head	1.12;
+access;
+symbols;
+locks
+	rjw2183:1.12; strict;
+comment	@# @;
+
+
+1.12
+date	2005.01.06.14.01.48;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.11.11.04.28.59;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.09.23.02.35.50;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.09.23.01.56.06;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.09.10.02.33.08;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.08.12.01.21.57;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.07.22.19.33.59;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.07.16.18.36.05;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.23.19.57.42;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.16.19.59.03;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.15.19.52.30;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.41;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The game interface is the interface used for the M2MI system.  It is what
+ * is used by the others in the group to access this system to make function
+ * calls.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: Game.java,v 1.11 2004/11/11 04:28:59 rjw2183 Exp $
+ */
+ package m2mimud.communications;
+ 
+ import m2mimud.state.PlayerCharacter;
+ import m2mimud.state.MoveData;
+ import m2mimud.game.SayData;
+ import m2mimud.state.XYloc;
+ import m2mimud.state.GameState;
+ import m2mimud.state.House;
+ import edu.rit.m2mi.Eoid;
+ import m2mimud.state.MobKey;
+ import java.util.Date; 
+ import m2mimud.game.DeathData;
+ 
+ public interface Game
+ {
+	/**
+	 * Performs a yell, which broadcasts the given message to 
+	 * all players currently on the session map.
+	 * @@param: message The message to yell
+	 * @@param: handle The handle of the game unit this came from
+	 * @@param: playerName The name of the player who is yelling.
+	 */
+	public void yell( SayData theMessage, int partition );
+	
+	/**
+	 * Informs others that a new unit has joined the session.
+	 * @@param: handle The unihandle to the game unit which is joining.
+	 * @@param: player The player character information about the player who is joining.
+	 * @@param: newState the state of the world which is joining.
+	 */
+	public void joinSession( PlayerCharacter player, int partition );
+	
+	/**
+	 * Informs others the a unit has left the session
+	 * @@param: handle The unihandle to the game unit which is leaving.
+	 */
+	public void leaveSession( Eoid playerId, int partition );
+	
+	/** 
+	 * Informs this unit that a player has timed out and thus must
+	 * be removed.
+	 * @@param handle The handle of the unit which as timed out
+	 */
+	public void notifyPlayerTimeout( Eoid playerId, int partition );
+	 
+	/** 
+	 * Informs the unit that a player has moved
+	 * @@param theMove The movement data object which contains all the information needed to 
+	 * perform a move.
+	 */
+	public void processMove( MoveData theMove, int partition );
+	 
+	/**
+	 * Prints a message if and only if the player of this world is
+	 * in the same room as the player who said something.
+	 * @@param: theMessage The data needed to say the message.
+	 */
+	public void say( SayData theMessage, int partition );
+	 
+	/**
+	 * Sets a pond at the specified location.
+	 * @@param location The location to place the pond
+	 * @@param playerId The id of the player who is creating the pond
+	 */
+	public void setPond( XYloc location, Eoid playerId, int partition );
+	
+	/**
+	 * Requests that this unit reports itself faster than normal,
+	 */
+	public void request();
+	
+	/**
+	 * Informs this unit of the passage of time
+	 * @@param newTime The new time
+	 */
+	public void notifyTimePassage( int newTime, int partition );
+	
+	/**
+	 * Notifies the unit that player has been warped from one spot to another
+	 * @@param player The handle to the player that was warped
+	 * @@param from The location the player was warped from
+	 * @@param to Th location the player was warped to
+	 */
+	public void warp( Eoid playerId, XYloc from, XYloc to, int partition );
+	
+	/**
+	 * Informs the system that it is time to print out a merchant
+	 * broadcast.
+	 * @@param merchant The type of merchant
+	 * @@param location The loction of the merchant.
+	 */
+	public void merchantBroadcast( int merchantType, XYloc location, int partition );
+	
+	/**
+	 * Sends a private message to this unit
+	 * @@param ID the id of the player who sent the message
+	 * @@param message The message the user sent
+	 */
+	public void sendPM( Eoid playerId, String message, int partition );	
+	
+	/**
+	 * Adds a house to the lcoation specifiied.	
+	 * @@param house The house object to add.
+	 */
+	public void addHouse( House theHouse, int partition );
+	 
+	/**
+	 * Tells the system that the given mob is under attack by the given player
+	 * This causes the mob to silently register the player as its attack, 
+	 * which means it stops its movement, but it doesn't inform the system when it attacks
+	 * is targets.  Players, however, are told that the mob is fighting a player when 
+	 * they enter the room and/or perform the /look command.  They are also notifed that the given player
+	 * begins attack the monster
+	 * @@param loc The location where the mob is
+	 * @@param theKey The MobKey of the mob in question
+	 * @@param playerId the id of the player.
+	 * @@param ts The timestamp for when ths fight began         
+	 */
+	public void registerAttacker( XYloc loc, MobKey theKey, Eoid playerId,
+	                               Date ts,  int partition );
+	 
+	/**
+	 * Informs a unt that the duel challenge has been declined
+	 * @@param: reason The reason the duel was declined.
+	 * @@param: pId The id of the person who declines the duel          
+	 */
+	public void declineDuel( String reason, Eoid pId, int partition );
+	 
+	/**
+	 * Tells this unit to print an attack message
+         * @@param damae The damage the player did
+         * @@param pId the Id of the player that sent this command
+	 */
+	public void printAttack( int damage, int partition, Eoid pId );
+	
+	/**
+	 * Informs this unit that the given player has requested a duel
+	 * @@param pId The id of the player who requested the duel
+	 */ 
+	public void requestDuel( Eoid pId, int partition );
+	 
+	/**
+	 * Informs the unit that a user has accepted a duel
+	 * @@param pId The id off the player tha accepted the duel
+	 */
+	public void acceptDuel( Eoid pId, int partition );
+	 
+	/**
+	 * Informs this unit that the 2 players have started fighting
+	 * @@param p1 The id of the first player
+	 * @@param p2 The id of the second player
+	 * @@param theLoc The location of the fight
+	 */
+	public void notifyFight( Eoid p1, Eoid p2, XYloc theLoc, int partition ); 
+	 
+	/**
+	 * Informs this unit that a mob has been killed
+	 * @@param loc The location where the mob was killed
+	 * @@param pId The id of the player that killed the mob
+	 * @@param theMob The id of the mob, ths is passed in case
+	 *        the player is null in the receiving unit
+	 */
+	public void notifyMobDeath( DeathData theInfo, int partition );
+	 
+	/**
+	 * Tells this unit to respawn the given mob
+	 * @@param key They unique key of the mob that died
+	 */
+	public void notifyMobRespawn( MobKey key, int partition );
+	 
+	/**
+	 * Informs this unit that a player has been killed
+	 * @@param id The id of the player that was killed
+	 */
+	public void notifyPlayerDeath( DeathData theData, int partition );
+	 
+	/**
+	 * Tells this unit to update it's state
+	 * @@param theState The new state
+	 */
+	public void updateState( GameState theState, int partition );
+	 
+	/**
+	 * Tells this unit to refresh the timeout timer of the given player
+	 * @@param playerId The id of the player to refresh
+	 */ 
+	public void refreshPlayer( Eoid playerId, int partNum ); 
+	 
+	/**
+	 * Sends back the calculated damage to the unit thaty dealt it
+	 * @@param damage The damage done
+	 */
+	public void reportBackDamage( int damage, int partNum );
+	 
+	/** 
+	 * This either moves or removes the player into/from the gven house
+	 * @@param pId The id of the player
+	 * @@param houseId The id of the house
+	 * @@param enter True if the player is entering the house, false if they are
+	 * leaving
+	 */
+	public void moveHouse( Eoid pId, Eoid houseId, boolean enter, int pNum);
+	 
+	/**
+	 * This function is used to surrender to ther player the user is fighting
+	 * @@param pId The id of the player who is surrendering
+	 */
+	public void surrender( int partNum, Eoid pId );
+	 
+	/**
+	 * This function notifies the session that something has gone wrong
+	 * and requests all unit schedule a shortened report
+	 * @@param id The player id of the game unit, this is passed
+	 *        to prevent the unit that called it from doing a 
+	 *         countdown
+	 */
+	public void errorDetected( Eoid pId, int partNum );		 
+ }
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.10 2004/09/23 02:35:50 rjw2183 Exp $
+d52 1
+a52 1
+	 public void notifyPlayerTimeout( Eoid playerId, int partition );
+d54 19
+a72 17
+	 /** 
+	  * Informs the unit that a player has moved
+	  * @@param theMove The movement data object which contains all the information needed to 
+	  * perform a move.
+	  */
+	 public void processMove( MoveData theMove, int partition );
+	 
+	 /**
+	  * Prints a message if and only if the player of this world is
+	  * in the same room as the player who said something.
+	  * @@param: theMessage The data needed to say the message.
+	  */
+	 public void say( SayData theMessage, int partition );
+	 
+	 /**
+	  * Sets a pond at the specified location.
+	  */
+d113 1
+a113 1
+	 public void addHouse( House theHouse, int partition );
+d115 1
+a115 1
+	 /**
+d127 1
+a127 1
+	 public void registerAttacker( XYloc loc, MobKey theKey, Eoid playerId,
+d130 60
+a189 96
+	 /**
+	  * Informs a unt that the duel challenge has been declined
+	  * @@param: reason The reason the duel was declined.
+	  * @@param: pId The id of the person who declines the duel          
+	  */
+	 public void declineDuel( String reason, Eoid pId, int partition );
+	 
+	 /**
+	  * Tells this unit to print an attack message
+          * @@param damae The damage the player did
+          * @@param pId the Id of the player that sent this command
+	  */
+	 public void printAttack( int damage, int partition, Eoid pId );
+	
+	 /**
+	  * Informs this unit that the given player has requested a duel
+	  * @@param pId The id of the player who requested the duel
+	  */ 
+	 public void requestDuel( Eoid pId, int partition );
+	 
+	 /**
+	  * Informs the unit that a user has accepted a duel
+	  * @@param pId The id off the player tha accepted the duel
+	  */
+	 public void acceptDuel( Eoid pId, int partition );
+	 
+	 /**
+	  * Informs this unit that the 2 players have started fighting
+	  * @@param p1 The id of the first player
+	  * @@param p2 The id of the second player
+	  * @@param theLoc The location of the fight
+	  */
+	 public void notifyFight( Eoid p1, Eoid p2, XYloc theLoc, int partition ); 
+	 
+	 /**
+	  * Informs this unit that a mob has been killed
+	  * @@param loc The location where the mob was killed
+	  * @@param pId The id of the player that killed the mob
+	  * @@param theMob The id of the mob, ths is passed in case
+	  *        the player is null in the receiving unit
+	  */
+	 public void notifyMobDeath( DeathData theInfo, int partition );
+	 
+	 /**
+	  * Tells this unit to respawn the given mob
+	  * @@param key They unique key of the mob that died
+	  */
+	 public void notifyMobRespawn( MobKey key, int partition );
+	 
+	 /**
+	  * Informs this unit that a player has been killed
+	  * @@param id The id of the player that was killed
+	  */
+	 public void notifyPlayerDeath( DeathData theData, int partition );
+	 
+	 /**
+	  * Tells this unit to update it's state
+	  * @@param theState The new state
+	  */
+	 public void updateState( GameState theState, int partition );
+	 
+	 /**
+	  * Tells this unit to refresh the timeout timer of the given player
+	  * @@param playerId The id of the player to refresh
+	  */ 
+	 public void refreshPlayer( Eoid playerId, int partNum ); 
+	 
+	 /**
+	  * Sends back the calculated damage to the unit thaty dealt it
+	  * @@param damage The damage done
+	  */
+	 public void reportBackDamage( int damage, int partNum );
+	 
+	 /** 
+	  * This either moves or removes the player into/from the gven house
+	  * @@param pId The id of the player
+	  * @@param houseId The id of the house
+	  * @@param enter True if the player is entering the house, false if they are
+	  * leaving
+	  */
+	 public void moveHouse( Eoid pId, Eoid houseId, boolean enter, int pNum);
+	 
+	 /**
+	  * This function is used to surrender to ther player the user is fighting
+	  * @@param pId The id of the player who is surrendering
+	  */
+	 public void surrender( int partNum, Eoid pId );
+	 
+	 /**
+	  * This function notifies the session that something has gone wrong
+	  * and requests all unit schedule a shortened report
+	  * @@param id The player id of the game unit, this is passed
+	  *        to prevent the unit that called it from doing a 
+	  *         countdown
+	  */
+	  public void errorDetected( Eoid pId, int partNum );
+d191 5
+d197 29
+@
+
+
+1.10
+log
+@Merged the enterhouse and leavehouse functions into one.
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.9 2004/09/23 01:56:06 rjw2183 Exp rjw2183 $
+d20 1
+d31 1
+a31 1
+	public void yell( String message, Eoid playerId, int partition );
+d123 1
+a123 1
+	 * @@param ts The timestamp for when ths fight began
+d131 1
+a131 1
+	  * @@param: pId The id of the person who declines the duel
+d137 2
+d140 1
+a140 1
+	 public void printAttack( int damage, int partition );
+d166 2
+d169 1
+a169 1
+	 public void notifyMobDeath( XYloc loc, Eoid pId, int partition );
+a179 1
+	  * @@param loc The location of the player
+d181 1
+a181 1
+	 public void notifyPlayerDeath( Eoid id, XYloc loc, int partition );
+d210 16
+@
+
+
+1.9
+log
+@Added some comments and the 2 functions that take care of entering
+and leaving houses.
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.8 2004/09/10 02:33:08 rjw2183 Exp rjw2183 $
+d198 1
+a198 1
+	  * Informs this unit that the player has entered the house with the given ID
+d201 2
+d204 1
+a204 1
+	 public void enterHouse( Eoid pId, Eoid houseId );
+a205 6
+	 /**
+	  * Informs the unit that the plauer has left the given house
+	  * @@param pId The id of the player
+	  * @@param houseId The id of the house
+	  */
+	 public void leaveHouse( Eoid pId, Eoid houseId );
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.7 2004/08/12 01:21:57 rjw2183 Exp rjw2183 $
+d145 4
+d151 6
+d159 5
+d166 4
+d172 5
+d179 4
+d185 4
+d190 20
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.6 2004/07/22 19:33:59 rjw2183 Exp rjw2183 $
+d19 2
+d122 1
+d124 2
+a125 1
+	 public void registerAttacker( XYloc loc, MobKey theKey, Eoid playerId, int partition );
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.5 2004/07/16 18:36:05 rjw2183 Exp rjw2183 $
+a19 1
+ extends GameDiscovery
+d152 2
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.4 2004/06/23 19:57:42 rjw2183 Exp rjw2183 $
+d29 1
+a29 1
+	public void yell( String message, Eoid playerId );
+d37 1
+a37 1
+	public void joinSession( PlayerCharacter player );
+d43 1
+a43 1
+	public void leaveSession( Eoid playerId );
+d50 1
+a50 1
+	 public void notifyPlayerTimeout( Eoid playerId );
+d57 1
+a57 1
+	 public void processMove( MoveData theMove );
+d64 1
+a64 1
+	 public void say( SayData theMessage );
+d69 1
+a69 1
+	public void setPond( XYloc location, Eoid playerId );
+d80 1
+a80 1
+	public void notifyTimePassage( int newTime );
+d88 1
+a88 1
+	public void warp( Eoid playerId, XYloc from, XYloc to );
+d96 1
+a96 1
+	public void merchantBroadcast( int merchantType, XYloc location );
+d103 1
+a103 1
+	public void sendPM( Eoid playerId, String message );	
+d109 1
+a109 1
+	 public void addHouse( House theHouse );
+d122 1
+a122 1
+	 public void registerAttacker( XYloc loc, MobKey theKey, Eoid playerId );
+d129 1
+a129 1
+	 public void declineDuel( String reason, Eoid pId );
+d134 1
+a134 1
+	 public void printAttack( int damage );
+d140 1
+a140 1
+	 public void requestDuel( Eoid pId );
+d142 1
+a142 1
+	 public void acceptDuel( Eoid pId );
+d144 1
+a144 1
+	 public void notifyFight( Eoid p1, Eoid p2, XYloc theLoc ); 
+d146 1
+a146 1
+	 public void notifyMobDeath( XYloc loc, Eoid pId );
+d148 1
+a148 1
+	 public void notifyMobRespawn( MobKey key );
+d150 1
+a150 1
+	 public void notifyPlayerDeath( Eoid id, XYloc loc );
+d152 1
+a152 1
+	 public void updateState( GameState theState );
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.3 2004/06/16 19:59:03 rjw2183 Exp rjw2183 $
+d37 1
+a37 1
+	public void joinSession( Game handle, PlayerCharacter player, GameState newState );
+a66 7
+	  * Adds player to this unit
+	  * @@param location The location of the player
+	  * @@param: handle The handle of the player
+	  */
+	 public void addPlayer( XYloc location, Eoid playerId );
+	 
+	 /**
+d151 2
+@
+
+
+1.3
+log
+@,
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.2 2004/06/15 19:52:30 rjw2183 Exp rjw2183 $
+d131 5
+d138 9
+a146 2
+	 public void printAttack();
+	 
+d152 6
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.1 2004/06/10 17:00:41 rjw2183 Exp $
+d131 9
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Game.java,v 1.12 2004/05/13 15:41:18 rjw2183 Exp rjw2183 $
+d18 1
+d118 13
+@

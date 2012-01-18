@@ -1,0 +1,290 @@
+//******************************************************************************
+//
+// File:    Bullet.java
+// Package: edu.rit.slides.items
+// Unit:    Class edu.rit.slides.items.Bullet
+//
+// This Java source file is copyright (C) 2001-2004 by Alan Kaminsky. All rights
+// reserved. For further information, contact the author, Alan Kaminsky, at
+// ark@cs.rit.edu.
+//
+// This Java source file is part of the M2MI Library ("The Library"). The
+// Library is free software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation; either version 2 of the License, or (at your option) any later
+// version.
+//
+// The Library is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+// details.
+//
+// A copy of the GNU General Public License is provided in the file gpl.txt. You
+// may also obtain a copy of the GNU General Public License on the World Wide
+// Web at http://www.gnu.org/licenses/gpl.html or by writing to the Free
+// Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+// USA.
+//
+//******************************************************************************
+
+package edu.rit.slides.items;
+
+import java.awt.BasicStroke;
+import java.awt.Graphics2D;
+import java.awt.Stroke;
+
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Ellipse2D;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+/**
+ * Class Bullet provides various kinds of bullets that can be added to a {@link
+ * TextItem </CODE>TextItem<CODE>}. The bullet is always added to the left of
+ * the text item, with a specified distance from the left side of the bullet to
+ * the left side of the text item.
+ *
+ * @author  Alan Kaminsky
+ * @version 22-Nov-2004
+ */
+public class Bullet
+	implements Externalizable
+	{
+
+// Hidden helper classes.
+
+	/**
+	 * Class Bullet.Info is a record containing information needed to draw a
+	 * bullet. <TT>theArea</TT> draws the bullet in "standard position" -- with
+	 * its lower left corner at (0,0), for a text font size of 1. If
+	 * <TT>theArea</TT> is null, the bullet is not drawn. <TT>isFilled</TT>
+	 * tells whether the interior of the bullet is filled.
+	 * <TT>theOutlineWidth</TT> gives the width of the outline stroke for the
+	 * bullet; if 0, the outline is not drawn.
+	 *
+	 * @author  Alan Kaminsky
+	 * @version 10-Oct-2003
+	 */
+	private static class Info
+		{
+		public Area theArea;
+		public boolean isFilled;
+		public float theOutlineWidth;
+
+		public Info
+			(Area theArea,
+			 boolean isFilled,
+			 float theOutlineWidth)
+			{
+			this.theArea = theArea;
+			this.isFilled = isFilled;
+			this.theOutlineWidth = theOutlineWidth;
+			}
+		}
+
+// Hidden data members.
+
+	private static final long serialVersionUID = 7781713518977782949L;
+
+	// Table of bullet information records, indexed by bullet kind.
+	private static final Info[] theBulletInfo;
+	static
+		{
+		theBulletInfo = new Info [3];
+
+		theBulletInfo[0] = new Info (null, false, 0.0f);
+
+		theBulletInfo[1] =
+			new Info
+				(new Area (new Ellipse2D.Double (0.0, -0.625, 0.5, 0.5)),
+				 true,
+				 0.0f);
+
+		theBulletInfo[2] =
+			new Info
+				(new Area (new Ellipse2D.Double (0.0, -0.625, 0.5, 0.5)),
+				 false,
+				 1.0f);
+		}
+
+	// Kind of bullet.
+	private int myKind;
+
+	// Offset from left end of bullet to left end of text box.
+	private double myOffset;
+
+// Exported constants.
+
+	/**
+	 * A kind of bullet with no shape.
+	 */
+	public static final int BULLET_KIND_NONE = 0;
+
+	/**
+	 * A kind of bullet in the shape of a medium sized dot.
+	 */
+	public static final int BULLET_KIND_DOT = 1;
+
+	/**
+	 * A kind of bullet in the shape of a medium sized circle.
+	 */
+	public static final int BULLET_KIND_CIRCLE = 2;
+
+	/**
+	 * The normal bullet offset, 36.0 (1/2 inch).
+	 */
+	public static final double NORMAL_OFFSET = 36.0;
+
+	/**
+	 * A nonexistent bullet.
+	 */
+	public static final Bullet NONE = null;
+
+	/**
+	 * A bullet in the shape of a medium sized dot, offset 36.0 (1/2 inch) from
+	 * the text item.
+	 */
+	public static final Bullet DOT = new Bullet (BULLET_KIND_DOT);
+
+	/**
+	 * A bullet in the shape of a medium sized circle, offset 36.0 (1/2 inch)
+	 * from the text item.
+	 */
+	public static final Bullet CIRCLE = new Bullet (BULLET_KIND_CIRCLE);
+
+// Exported constructors.
+
+	/**
+	 * Construct a new empty bullet.
+	 */
+	public Bullet()
+		{
+		}
+
+	/**
+	 * Construct a new bullet of the given kind. The normal offset
+	 * (Bullet.NORMAL_OFFSET) is used.
+	 *
+	 * @param  theKind  Kind of bullet (one of the <TT>BULLET_KIND_XXX</TT>
+	 *                  values).
+	 *
+	 * @exception  IllegalArgumentException
+	 *     (unchecked exception) Thrown if <TT>theKind</TT> is not one of the
+	 *     legal kinds of bullet.
+	 */
+	public Bullet
+		(int theKind)
+		{
+		this (theKind, NORMAL_OFFSET);
+		}
+
+	/**
+	 * Construct a new bullet of the given kind with the given offset.
+	 *
+	 * @param  theKind    Kind of bullet (one of the <TT>BULLET_KIND_XXX</TT>
+	 *                    values).
+	 * @param  theOffset  Offset from left side of bullet to left side of text.
+	 *
+	 * @exception  IllegalArgumentException
+	 *     (unchecked exception) Thrown if <TT>theKind</TT> is not one of the
+	 *     legal kinds of bullet.
+	 */
+	public Bullet
+		(int theKind,
+		 double theOffset)
+		{
+		if (0 > theKind || theKind >= theBulletInfo.length)
+			{
+			throw new IllegalArgumentException();
+			}
+		myKind = theKind;
+		myOffset = theOffset;
+		}
+
+// Exported operations.
+
+	/**
+	 * Draw this bullet in the given graphics context. It assumes the graphics
+	 * context's paint is already set to the correct value. The bullet is scaled
+	 * to match the <TT>ascent</TT>. The bullet's left side is placed relative
+	 * to the coordinates of the left end of the text baseline <TT>(x,y)</TT>.
+	 *
+	 * @param  g2d     2-D graphics context.
+	 * @param  ascent  Text font ascent.
+	 * @param  x       X coordinate of the left end of the text baseline.
+	 * @param  y       Y coordinate of the left end of the text baseline.
+	 */
+	public void draw
+		(Graphics2D g2d,
+		 double ascent,
+		 double x,
+		 double y)
+		{
+		Info info =
+			0 <= myKind && myKind < theBulletInfo.length ?
+				theBulletInfo[myKind] :
+				null;
+		if (info != null && info.theArea != null)
+			{
+			AffineTransform areaTransform = new AffineTransform();
+			areaTransform.translate (x-myOffset, y);
+			areaTransform.scale (ascent, ascent);
+			Area transformedArea =
+				info.theArea.createTransformedArea (areaTransform);
+			if (info.isFilled)
+				{
+				g2d.fill (transformedArea);
+				}
+			if (info.theOutlineWidth > 0.0f)
+				{
+				Stroke oldStroke = g2d.getStroke();
+				g2d.setStroke (new BasicStroke (info.theOutlineWidth));
+				g2d.draw (transformedArea);
+				g2d.setStroke (oldStroke);
+				}
+			}
+		}
+
+	/**
+	 * Write this bullet to the given object output stream.
+	 *
+	 * @param  out  Object output stream.
+	 *
+	 * @exception  IOException
+	 *     Thrown if an I/O error occurred.
+	 */
+	public void writeExternal
+		(ObjectOutput out)
+		throws IOException
+		{
+		out.writeInt (myKind);
+		out.writeDouble (myOffset);
+		}
+
+	/**
+	 * Read this bullet from the given object input stream.
+	 *
+	 * @param  in  Object input stream.
+	 *
+	 * @exception  IOException
+	 *     Thrown if an I/O error occurred.
+	 */
+	public void readExternal
+		(ObjectInput in)
+		throws IOException
+		{
+		myKind = in.readInt();
+		myOffset = in.readDouble();
+		if (0 > myKind || myKind >= theBulletInfo.length)
+			{
+			throw new InvalidObjectException
+				("Invalid bullet (kind = " + myKind + ")");
+			}
+		}
+
+	}

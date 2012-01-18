@@ -1,0 +1,42 @@
+head	1.1;
+access;
+symbols;
+locks
+	rjw2183:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	2004.06.10.17.00.41;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/** 
+ * The discoverable game object is an object which can be discovered by other
+ * game units.  It has one function, request, which causes it to report 
+ * itself faster than before so that units can find a session quicker.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: DiscoverableGame.java,v 1.2 2004/04/01 16:48:39 rjw2183 Exp rjw2183 $ 
+ */
+ package m2mimud.communications;
+ 
+ public interface DiscoverableGame
+ extends GameDiscovery
+ {
+ 	/**
+	 * Request that the game units report themselves quickly
+	 */
+	 public void request();
+ }
+@

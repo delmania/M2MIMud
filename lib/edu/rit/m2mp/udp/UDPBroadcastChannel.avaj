@@ -1,0 +1,316 @@
+//******************************************************************************
+//
+// File:    UDPBroadcastChannel.java
+// Package: edu.rit.m2mp.udp
+// Unit:    Class edu.rit.m2mp.udp.UDPBroadcastChannel
+//
+// This Java source file is copyright (C) 2004 by the Rochester Institute of
+// Technology. All rights reserved. For further information, contact the author,
+// Alan Kaminsky, at ark@it.rit.edu.
+//
+// This Java source file is part of the M2MI Library ("The Library"). The
+// Library is free software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation; either version 2 of the License, or (at your option) any later
+// version.
+//
+// The Library is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+// details.
+//
+// A copy of the GNU General Public License is provided in the file gpl.txt. You
+// may also obtain a copy of the GNU General Public License on the World Wide
+// Web at http://www.gnu.org/licenses/gpl.html or by writing to the Free
+// Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+// USA.
+//
+//******************************************************************************
+
+package edu.rit.m2mp.udp;
+
+import edu.rit.m2mp.M2MPInitializationException;
+import edu.rit.m2mp.M2MPPropertyValueException;
+import edu.rit.m2mp.M2MPProperties;
+
+import java.io.IOException;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+
+import java.util.Enumeration;
+
+/**
+ * Class UDPBroadcastChannel provides a point-to-point M2MP {@link
+ * edu.rit.m2mp.Channel </CODE>Channel<CODE>} that uses UDP datagrams to
+ * transport M2MP packets. Each UDP datagram is sent to an IP subnet broadcast
+ * address and port number. Thus, all hosts on that subnet receive the
+ * datagrams.
+ * <P>
+ * An IP subnet broadcast address is defined to be
+ * <BR>&nbsp;
+ * <BR>&nbsp;&nbsp;&nbsp;&nbsp;Subnet-Number OR (NOT Subnet-Mask)
+ * <BR>&nbsp;
+ * <BR>For example, if the subnet number is 10.0.4.0 and the subnet mask is
+ * 255.255.252.0, then the subnet consists of addresses 10.0.4.0 through
+ * 10.0.7.255, and the subnet broadcast address is the last of those,
+ * 10.0.7.255. Any UDP datagram sent to address 10.0.7.255 will be received by
+ * all hosts with addresses in the range 10.0.4.0 through 10.0.7.254.
+ * <P>
+ * The following parameters from the M2MP properties file are used to configure
+ * a UDPBroadcastChannel. See class {@link edu.rit.m2mp.M2MPProperties
+ * </CODE>M2MPProperties<CODE>} for further information.
+ * <UL>
+ * <LI>
+ * <TT><B>edu.rit.m2mp.udp.address</B></TT>
+ * <BR>
+ * The subnet number of the subnet to use for sending outgoing UDP datagrams, in
+ * the form of an IP address. This property must be specified; there is no
+ * default value.
+ * <BR>&nbsp;
+ * <LI>
+ * <TT><B>edu.rit.m2mp.udp.mask</B></TT>
+ * <BR>
+ * The subnet mask of the subnet to use for sending outgoing UDP datagrams, in
+ * the form of an IP address. This property must be specified; there is no
+ * default value.
+ * <BR>&nbsp;
+ * <LI>
+ * <TT><B>edu.rit.m2mp.udp.port</B></TT>
+ * <BR>
+ * The port number to use for sending outgoing UDP datagrams. It must be a
+ * decimal integer. If this property is not specified, a default port number of
+ * 5678 is used.
+ * <BR>&nbsp;
+ * <LI>
+ * <TT><B>edu.rit.m2mp.udp.localaddress</B></TT>
+ * <BR>
+ * The value of this property is ignored. The UDPBroadcastChannel uses the
+ * network interface that is in the subnet specified by the
+ * <TT>edu.rit.m2mp.udp.address</TT> and <TT>edu.rit.m2mp.udp.mask</TT>
+ * properties. If there is no such network interface, an exception is thrown.
+ * <BR>&nbsp;
+ * <LI>
+ * <TT><B>edu.rit.m2mp.udp.localport</B></TT>
+ * <BR>
+ * The value of this property is ignored. The local port number is given by the
+ * <TT>edu.rit.m2mp.udp.port</TT> property.
+ * <BR>&nbsp;
+ * </UL>
+ * <P>
+ * <I><B>Warning:</B> Class UDPBroadcastChannel does not work properly on all
+ * platforms and networks. Be sure to test it in your environment before using
+ * it.</I>
+ *
+ * @author  Alan Kaminsky
+ * @version 26-Aug-2004
+ */
+public class UDPBroadcastChannel
+	extends UDPChannel
+	{
+
+// Exported constructors.
+
+	/**
+	 * Construct a new UDP broadcast channel.
+	 *
+	 * @exception  M2MPInitializationException
+	 *     (unchecked exception) Thrown if the UDP broadcast channel cannot be
+	 *     initialized.
+	 */
+	public UDPBroadcastChannel()
+		{
+		super (null);
+
+		// Get subnet address and subnet mask.
+		byte[] subnetMask = getSubnetMask().getAddress();
+		byte[] subnetAddress = AND (myAddress.getAddress(), subnetMask);
+
+		// Set up IP subnet broadcast address.
+		try
+			{
+			myAddress =
+				InetAddress.getByAddress (OR_NOT (subnetAddress, subnetMask));
+			}
+		catch (UnknownHostException exc)
+			{
+			throw new M2MPInitializationException
+				("Cannot determine IP subnet broadcast address", exc);
+			}
+
+		// Find the IP address of the network interface on that subnet.
+		myLocalAddress = null;
+		try
+			{
+			Enumeration intfs = NetworkInterface.getNetworkInterfaces();
+			while (myLocalAddress == null && intfs.hasMoreElements())
+				{
+				NetworkInterface intf = (NetworkInterface) intfs.nextElement();
+				Enumeration addrs = intf.getInetAddresses();
+				while (myLocalAddress == null && addrs.hasMoreElements())
+					{
+					InetAddress addr = (InetAddress) addrs.nextElement();
+					if (AND_EQUALS (addr.getAddress(), subnetMask, subnetAddress))
+						{
+						myLocalAddress = addr;
+						}
+					}
+				}
+			}
+		catch (SocketException exc)
+			{
+			}
+		if (myLocalAddress == null)
+			{
+			throw new M2MPInitializationException
+				("Cannot find network interface for IP subnet broadcast address " +
+				 myAddress.getHostAddress());
+			}
+
+		// Make sure the localport is the same as the port.
+		myLocalPort = myPort;
+
+/*DBG*/System.err.print   ("edu.rit.m2mp.udp.UDPBroadcastChannel: Broadcast address = ");
+/*DBG*/System.err.print   (myAddress.getHostAddress());
+/*DBG*/System.err.print   (":");
+/*DBG*/System.err.print   (myPort);
+/*DBG*/System.err.print   (", local address = ");
+/*DBG*/System.err.print   (myLocalAddress.getHostAddress());
+/*DBG*/System.err.print   (":");
+/*DBG*/System.err.println (myLocalPort);
+
+		// Open socket.
+		try
+			{
+			openSocket();
+			}
+		catch (IOException exc)
+			{
+			throw new M2MPInitializationException
+				("Cannot open datagram socket", exc);
+			}
+		}
+
+// Hidden operations.
+
+	/**
+	 * Returns the subnet mask, property <TT>edu.rit.m2mp.udp.mask</TT>.
+	 *
+	 * @exception  M2MPPropertyFileException
+	 *     (unchecked exception) Thrown if the M2MP properties file cannot be
+	 *     found or cannot be read.
+	 * @exception  M2MPPropertyMissingException
+	 *     (unchecked exception) Thrown if the property value cannot be found.
+	 * @exception  M2MPPropertyValueException
+	 *     (unchecked exception) Thrown if the property value cannot be resolved
+	 *     to an InetAddress.
+	 */
+	private static InetAddress getSubnetMask()
+		{
+		String name = "edu.rit.m2mp.udp.mask";
+		String prop = null;
+		try
+			{
+			prop = M2MPProperties.getPropertyValue (name);
+			InetAddress value = InetAddress.getByName (prop);
+			return value;
+			}
+		catch (UnknownHostException exc)
+			{
+			throw new M2MPPropertyValueException
+				("M2MP property " + name + " = \"" + prop +
+					"\" is not a host IP address");
+			}
+		}
+
+	/**
+	 * Returns (address AND mask).
+	 */
+	private static byte[] AND
+		(byte[] address,
+		 byte[] mask)
+		{
+		int n = address.length;
+		byte[] result = new byte [n];
+		for (int i = 0; i < n; ++ i)
+			{
+			result[i] = (byte) (address[i] & mask[i]);
+			}
+		return result;
+		}
+
+	/**
+	 * Returns (address OR (NOT mask)).
+	 */
+	private static byte[] OR_NOT
+		(byte[] address,
+		 byte[] mask)
+		{
+		int n = address.length;
+		byte[] result = new byte [n];
+		for (int i = 0; i < n; ++ i)
+			{
+			result[i] = (byte) (address[i] | (~ mask[i]));
+			}
+		return result;
+		}
+
+	/**
+	 * Returns ((address1 AND mask) == address2).
+	 */
+	private boolean AND_EQUALS
+		(byte[] address1,
+		 byte[] mask,
+		 byte[] address2)
+		{
+		int n = address1.length;
+		for (int i = 0; i < n; ++ i)
+			{
+			if ((address1[i] & mask[i]) != address2[i]) return false;
+			}
+		return true;
+		}
+
+	/**
+	 * Create mySocket.
+	 *
+	 * @exception  IOException
+	 *     Thrown if an I/O error occurred.
+	 */
+	void openSocket()
+		throws IOException
+		{
+		mySocket = new DatagramSocket (myPort);
+		}
+
+	/**
+	 * Determine whether the given datagram is valid. This method marks
+	 * datagrams that were sent from this host's own IP address as invalid; an
+	 * M2MP channel is not supposed to receive datagrams that were sent by
+	 * itself.
+	 *
+	 * @param  theDatagram  Datagram.
+	 */
+	boolean subclassIsValid
+		(DatagramPacket theDatagram)
+		{
+		return ! theDatagram.getAddress().equals (myLocalAddress);
+		}
+
+	/**
+	 * Close down mySocket.
+	 */
+	void closeSocket()
+		{
+		if (mySocket != null)
+			{
+			mySocket.close();
+			mySocket = null;
+			}
+		}
+
+	}

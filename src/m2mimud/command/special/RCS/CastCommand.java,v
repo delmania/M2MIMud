@@ -1,0 +1,88 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2004.09.23.04.01.46;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.09.17.03.38.43;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The cast command object is for a cast object, which uses 
+ * 2 strings: the spell's id and the mob to cast on
+ * @@author: Robert Whitcomb
+ * @@version: $Id: CastCommand.java,v 1.1 2004/09/17 03:38:43 rjw2183 Exp rjw2183 $
+ */
+
+package m2mimud.command.special;
+
+import m2mimud.command.Command;
+
+public class CastCommand
+extends Command
+{
+	private String spellId; // the id of the spell to cast
+	private String mobName; // the name of the mob to attack
+	
+	/**
+	 * Constructor
+	 * @@param splId The name of the spell to cast
+	 * @@param mbNam The name of the mob to attack
+	 */
+	public CastCommand( String splId, String mbNm )
+	{
+		super( Command.CAST );
+		spellId = new String( splId );
+		mobName = new String( mbNm );
+	}
+	
+	/**
+	 * Returns the id of the spell to cast
+	 */
+	public String getSpellId()
+	{
+		return spellId;
+	}
+	
+	/**
+	 * Returns the name of the mob
+	 */
+	public String getMobName()
+	{
+		return mobName;
+	}
+}
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id$
+d27 1
+a27 1
+		mbNm = new String( mobName );
+@

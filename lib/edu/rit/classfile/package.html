@@ -1,0 +1,499 @@
+<HTML>
+<HEAD>
+<TITLE>Package edu.rit.classfile</TITLE>
+</HEAD>
+<BODY>
+
+Package edu.rit.classfile
+is the RIT Classfile Library
+for analyzing and synthesizing class files.
+<I>(Analysis capabilities are not yet implemented.)</I>
+<P>
+<A HREF="#overview">Section 1</A>
+gives an overview of the RIT Classfile Library.
+<A HREF="#apology">Section 2</A>
+discusses why I chose to develop
+yet another Java library for manipulating class files.
+<A HREF="#synthesizeclass">Section 3</A>
+describes how to synthesize a class.
+<A HREF="#synthesizeinterface">Section 4</A>
+describes how to synthesize an interface.
+<A HREF="#classloading">Section 5</A>
+describes how to load synthesized class files
+into the Java Virtual Machine (JVM).
+
+<P>
+<HR>
+<H2>Table of Contents</H2>
+
+1. <A HREF="#overview">Overview</A>
+<BR>
+2. <A HREF="#apology">An Apology</A>
+<BR>
+3. <A HREF="#synthesizeclass">Synthesizing a Class</A>
+<BR>
+4. <A HREF="#synthesizeinterface">Synthesizing an Interface</A>
+<BR>
+5. <A HREF="#classloading">Loading Synthesized Classes</A>
+<BR>
+6. <A HREF="#references">References</A>
+<BR>
+7. <A HREF="#license">License</A>
+<BR>
+8. <A HREF="#history">Revision History</A>
+
+<P>
+<HR>
+<A NAME="overview"><H2>1. Overview</H2></A>
+
+<P>
+With the RIT Classfile Library
+you can analyze an existing class file
+to discover which class, fields, methods, and so on
+it contains.
+While you can get the same information
+using the Java Reflection API
+(package java.lang.reflect),
+the Java Reflection API first requires you
+to load the class into the JVM.
+The RIT Classfile Library can analyze a class file
+without actually loading the class.
+Also, since it doesn&#146;t use reflection,
+the RIT Classfile Library
+can be used in Java environments that lack reflection,
+such as the Java 2 Micro Edition Connected Limited Device Configuration
+(J2ME CLDC).
+<P>
+<I>Note:
+The RIT Classfile Library&#146;s analysis capabilities
+are not yet implemented
+and will appear in a future version
+of the Library.</I>
+<P>
+With the RIT Classfile Library
+you can also synthesize a new class file
+and load it directly into the JVM.
+In this way, a running program can create a new class
+without having to generate a source file
+and run the Java compiler.
+Thus, the RIT Classfile Library
+can be used to create new classes
+in Java environments that lack a Java compiler
+and/or a file system,
+such as the J2ME CLDC.
+<P>
+The original motivation
+for writing the RIT Classfile Library
+was to enable the development
+of remote method invocation systems
+that generate their own stubs automatically
+rather than relying on a human
+to run an offline stub compiler.
+Java&#146;s dynamic proxies (class java.lang.reflect.Proxy)
+provide a similar capability.
+However, custom-synthesized stub classes
+generally execute more quickly
+than dynamic proxies that use reflection,
+and hence are more attractive
+in applications where performance is a concern.
+Also, the RIT Classfile Library
+is fully general
+and can synthesize <I>any</I> class,
+not just a proxy for an interface.
+
+<P>
+<HR>
+<A NAME="apology"><H2>2. An Apology</H2></A>
+
+<P>
+<TABLE BORDER=0 CELLPADDING=0 CELLSPACING=0 WIDTH=100%>
+<TR>
+<TD WIDTH=10%> </TD>
+<TD WIDTH=80%>
+<B>apology 1 a</B> :
+a formal justification :
+<FONT SIZE="-1">DEFENSE</FONT>
+<BR>
+&#151; <I>Webster&#146;s New Collegiate Dictionary</I>
+</TD>
+<TD WIDTH=10%> </TD>
+</TABLE>
+
+<P>
+I&#146;m aware of half a dozen or so
+programs and APIs
+with capabilities similar to those
+of the RIT Classfile Library.
+Why write another one?
+Does the world need yet another library
+for manipulating Java class files?
+<P>
+I wrote the RIT Classfile Library
+because I wasn&#146;t satisfied
+with the existing programs and libraries
+for my purpose,
+synthesizing remote method invocation stubs
+in small devices
+with limited (J2ME CLDC) Java environments.
+Some programs are class file &#147;assemblers&#148;
+that take their input from a source file;
+this won&#146;t work in a small device with no file system,
+and the code for parsing source text,
+generating error messages, and so on
+is unnecessary overhead for my purpose.
+Some libraries are over-general,
+with beautifully object-oriented designs
+but quite large and complex class hierarchies;
+the code footprint of such libraries
+is problematic for small devices with limited memories.
+Some libraries tangle analysis and synthesis capabilities
+together in the same classes,
+so that it&#146;s difficult to subset the library
+to do just one or the other;
+again, this leads to a larger than necessary
+code footprint.
+Some libraries expose the low-level details
+of the Java class file data structures
+like the &#147;constant pool&#148;
+and the &#147;code attributes;&#148;
+I find a high-level API that hides these details
+easier to work with.
+<P>
+My goals in writing the RIT Classfile Library were
+<UL>
+<P><LI>
+To hide the Java class file data structures
+so I could work with high-level abstractions
+rather than low-level details.
+<P><LI>
+To let a program synthesize class files directly
+without involving source text as an intermediate step.
+<P><LI>
+To design a simple, minimal API,
+the better to fit in small devices.
+<P><LI>
+To design an API that does both analysis and synthesis
+of class files in a unified framework
+but that can be easily subsetted to do just one or the other,
+the better to fit in small devices.
+<P><LI>
+To avoid using Java Reflection,
+which is not available in J2ME CLDC environments.
+</UL>
+
+<P>
+<HR>
+<A NAME="synthesizeclass"><H2>3. Synthesizing a Class</H2></A>
+
+<P>
+I assume you&#146;re familiar with JVM internals.
+See the <A HREF="#references">References</A> for further information.
+
+<P>
+To synthesize a class,
+first create an instance of class
+<A HREF="SynthesizedClassDescription.html">SynthesizedClassDescription</A>.
+A <B>class description</B> is an object
+that holds information about everything that&#146;s in a class.
+A <B>synthesized class description</B> is a class description
+where you fill out (synthesize) the class information yourself.
+(The other kind of class description,
+an <B>analyzed class description,</B>
+is a class description where the class information
+comes from a pre-existing class file.
+Analysis capabilities are not yet implemented
+in the RIT Classfile Library.)
+<P>
+Once you have the synthesized class description object,
+populate it with fields, methods, and whatever other information
+the class needs.
+Next, tell the synthesized class description object
+to emit its binary class file into an output stream,
+such as a FileOutputStream or a ByteArrayOutputStream.
+Finally, to use your new class,
+<A HREF="#classloading">load it into the JVM</A>
+as described later.
+<P>
+When synthesizing your class,
+you&#146;ll need to refer to other classes and types &#151;
+for example, to specify the superclass of your class,
+or to specify the data type for a field in your class.
+A <B>type reference</B> is an object
+that holds just enough information
+to refer to some data type.
+You can use any of several kinds of type reference:
+<UL>
+<P><LI>
+Class <A HREF="PrimitiveReference.html">PrimitiveReference</A>
+is used to refer to a Java primitive type.
+<P><LI>
+Class <A HREF="NamedClassReference.html">NamedClassReference</A>
+is used to refer to a Java class (or interface)
+with a given name.
+<P><LI>
+Class <A HREF="ArrayReference.html">ArrayReference</A>
+is used to refer to an array of some component type.
+<P><LI>
+A class description can also be used as a type reference.
+</UL>
+<P>
+To add a field to your class,
+create a <B>field description</B> object,
+which holds all information about the field.
+You can use any of several kinds of field description:
+<UL>
+<P><LI>
+Class <A HREF="SynthesizedClassConstantFieldDescription.html">SynthesizedClassConstantFieldDescription</A>
+for a static field initialized to a constant string or numeric value.
+<P><LI>
+Class <A HREF="SynthesizedClassFieldDescription.html">SynthesizedClassFieldDescription</A>
+for other fields.
+</UL>
+<P>
+To add a subroutine to your class,
+create a <B>subroutine description</B> object,
+which holds all information about the subroutine.
+The term &#147;subroutine&#148; refers collectively
+to constructors, methods, and class initializers.
+You can use any of several kinds of subroutine description:
+<UL>
+<P><LI>
+Class <A HREF="SynthesizedConstructorDescription.html">SynthesizedConstructorDescription</A>
+for a constructor.
+<P><LI>
+Class <A HREF="SynthesizedAbstractMethodDescription.html">SynthesizedAbstractMethodDescription</A>
+for an abstract method.
+<P><LI>
+Class <A HREF="SynthesizedMethodDescription.html">SynthesizedMethodDescription</A>
+for a regular method.
+<P><LI>
+Class <A HREF="SynthesizedClassInitializerDescription.html">SynthesizedClassInitializerDescription</A>
+for a class initializer.
+</UL>
+<P>
+Each subroutine (except an abstract method)
+needs a sequence of bytecode instructions.
+You use class <A HREF="Op.html">Op</A>
+to obtain each instruction,
+then you add each instruction to the subroutine description.
+You can also add instances of class <A HREF="Location.html">Location</A>
+to mark the target locations for branch instructions.
+<P>
+Some bytecode instructions refer to fields or methods
+that exist elsewhere.
+To refer to a field,
+use a <B>field reference</B> object.
+Class <A HREF="NamedFieldReference.html">NamedFieldReference</A>
+lets you refer to a field by name.
+A field description can also be used as a field reference.
+<P>
+To refer to a subroutine,
+use a <B>subroutine reference</B> object.
+You can use any of several kinds of subroutine reference:
+<UL>
+<P><LI>
+Class <A HREF="ConstructorReference.html">ConstructorReference</A>
+lets you refer to a constructor.
+<P><LI>
+Class <A HREF="MethodReference.html">MethodReference</A>
+lets you refer to a method.
+<P><LI>
+Class <A HREF="ClassInitializerReference.html">ClassInitializerReference</A>
+lets you refer to a class initializer.
+<P><LI>
+A subroutine description can also be used
+as a subroutine reference.
+</UL>
+<P>
+There are two very important pieces of information
+you must specify for each subroutine
+(except an abstract method):
+<B><TT>max_stack</TT>,</B>
+which gives the maximum number of words
+the subroutine ever pushes on the operand stack,
+and <B><TT>max_locals</TT>,</B>
+which gives the number of words needed to hold
+the subroutine&#146;s <TT>this</TT> pointer, arguments,
+and local variables.
+If you don&#146;t specify the correct
+<TT>max_stack</TT> and <TT>max_locals</TT>,
+your class may fail verification when loaded,
+or your subroutine may behave incorrectly when invoked.
+
+<P>
+<HR>
+<A NAME="synthesizeinterface"><H2>4. Synthesizing an Interface</H2></A>
+
+<P>
+To synthesize an interface,
+first create an instance of class
+<A HREF="SynthesizedInterfaceDescription.html">SynthesizedInterfaceDescription</A>.
+An <B>interface description</B> is an object
+that holds information about everything that&#146;s in an interface.
+A <B>synthesized interface description</B> is an interface description
+where you fill out (synthesize) the interface information yourself.
+(The other kind of interface description,
+an <B>analyzed interface description,</B>
+is an interface description where the interface information
+comes from a pre-existing class file.
+Analysis capabilities are not yet implemented
+in the RIT class file Library.)
+<P>
+Once you have the synthesized interface description object,
+you work with it in exactly the same way
+as a synthesized class description object.
+Populate it with fields, methods, and whatever other information
+the interface needs.
+Next, tell the synthesized interface description object
+to emit its binary class file into an output stream,
+such as a FileOutputStream or a ByteArrayOutputStream.
+Finally, to use your new interface,
+<A HREF="#classloading">load it into the JVM</A>
+as described later.
+<P>
+The only fields you can have in an interface
+are public static final fields.
+To add such a field to your interface,
+create a field description object that is an instance of
+class <A HREF="SynthesizedInterfaceFieldDescription.html">SynthesizedInterfaceFieldDescription</A>.
+<P>
+The only methods you can have in an interface
+are public abstract methods.
+To add such a method to your interface,
+create a subroutine description object that is an instance of
+class <A HREF="SynthesizedInterfaceMethodDescription.html">SynthesizedInterfaceMethodDescription</A>.
+An interface can also have a class initializer
+(class <A HREF="SynthesizedClassInitializerDescription.html">SynthesizedClassInitializerDescription</A>)
+to initialize the interface&#146;s fields if necessary.
+</UL>
+
+<P>
+<HR>
+<A NAME="classloading"><H2>5. Loading Synthesized Classes</H2></A>
+
+<P>
+After you&#146;ve filled everything out,
+a synthesized class description object
+lets you emit the binary class file
+into an output stream.
+(Everything in this section applies to synthesized interfaces too.
+For brevity, I&#146;ll omit mentioning interfaces.)
+To create actual instances of the synthesized class,
+you have to load this class file into the JVM.
+Two strategies are possible.
+<P>
+You can store the binary class file in a file
+(using a FileOutputStream),
+placing the file where a class loader can find it.
+For example, you can place the file
+in the proper directory
+in the system class loader&#146;s <TT>CLASSPATH</TT>.
+Or you can place the file in any old directory,
+and use a URLClassLoader
+to get the file from the proper <TT>"file://"</TT> URL.
+Or you can place the file
+where an HTTP server can retrieve it,
+and use a URLClassLoader
+to get the file from the proper <TT>"http://"</TT> URL.
+<P>
+Alternatively, you can feed the binary class file
+directly into a class loader,
+bypassing the file system altogether.
+The RIT Classfile Library
+provides a special class loader implementation
+for this purpose,
+class <A HREF="DirectClassLoader.html">DirectClassLoader</A>.
+To feed a class file into a direct class loader,
+you obtain an output stream from the direct class loader
+and emit the synthesized class file into this output stream.
+When later told to load that class,
+the direct class loader gets the class file
+from the bytes that were written.
+
+<P>
+<HR>
+<A NAME="references"><H2>6. References</H2></A>
+
+<OL TYPE=1>
+
+<P><LI>
+Tim Lindholm and Frank Yellin.
+<I>The Java&trade; Virtual Machine Specification, 2nd Edition.</I>
+Reading, MA: Addison-Wesley, 1999.
+<A HREF="http://java.sun.com/docs/books/vmspec/2nd-edition/html/VMSpecTOC.doc.html">http://java.sun.com/docs/books/vmspec/2nd-edition/html/VMSpecTOC.doc.html</A>
+
+<P><LI>
+Bill Venners.
+<I>Inside the Java Virtual Machine, 2nd Edition.</I>
+New York, NY: McGraw-Hill, 1999.
+
+</OL>
+
+<P>
+<HR>
+<A NAME="license"><H2>7. License</H2></A>
+
+<P>
+The documentation and Java source files in the RIT Classfile Library
+("The Library")
+are copyright &copy; 2001, 2002
+by the Rochester Institute of Technology.
+All rights reserved.
+For further information, contact the author, Alan Kaminsky,
+at <A HREF="mailto:ark@it.rit.edu">ark@it.rit.edu</A>.
+<P>
+The Library is
+free software; you can redistribute it and/or modify it under the terms of
+the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+<P>
+The Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details.
+<P>
+A copy of the GNU General Public License
+is provided in the file <A HREF="doc-files/gpl.txt"><TT>gpl.txt</TT></A>.
+You may also obtain a copy of the GNU General Public License
+on the World Wide Web at
+<A HREF="http://www.gnu.org/licenses/gpl.html" TARGET="_top">http://www.gnu.org/licenses/gpl.html</A>
+or by writing to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+
+<P>
+<HR>
+<A NAME="history"><H2>8. Revision History</H2></A>
+
+<DL COMPACT>
+
+<P><DT>22-Aug-2003
+<DD>
+No changes to functionality.
+Bumped the date to stay in sync
+with the M2MI Library and the M2MP Library.
+
+<P><DT>02-Jul-2002
+<DD>
+No changes to functionality.
+Bumped the date to stay in sync
+with the M2MI Library and the M2MP Library.
+
+<P><DT>07-Jun-2002
+<DD>
+Added a few classes and methods
+needed by the Many-to-Many Invocation (M2MI) Library.
+Released under the terms of the GNU General Public License
+(no longer the GNU Lesser General Public License).
+
+<P><DT>12-Oct-2001
+<DD>
+Initial version.
+Includes the classfile synthesis capability
+and test programs.
+Released under the terms of the GNU Lesser General Public License.
+
+</DL>
+
+</BODY>
+</HTML>

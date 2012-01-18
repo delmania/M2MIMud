@@ -1,0 +1,465 @@
+<HTML>
+<HEAD>
+<TITLE>The M2MI Library</TITLE>
+</HEAD>
+<BODY>
+
+The M2MI Library is the API for
+<B>Many-to-Many Invocation (M2MI),</B>
+a new paradigm for building distributed systems,
+especially ad hoc collaborative systems
+that run in proximal wireless networks
+of fixed and mobile computing devices,
+as well as traditional client-server systems.
+
+<P>
+The M2MI Library comprises three principal packages;
+see each package's documentation
+for further information:
+<UL>
+<LI>
+Package <A HREF="edu/rit/m2mi/package-summary.html">edu.rit.m2mi</A>
+provides M2MI itself.
+<BR>&nbsp;
+<LI>
+Package <A HREF="edu/rit/m2mp/package-summary.html">edu.rit.m2mp</A>
+provides the Many-to-Many Protocol (M2MP),
+which is used to transport M2MI messages.
+<BR>&nbsp;
+<LI>
+Package <A HREF="edu/rit/classfile/package-summary.html">edu.rit.classfile</A>
+provides the RIT Classfile Library (RCL),
+which is used to synthesize M2MI proxy classes.
+</UL>
+
+
+<P>
+<HR>
+<H2>Table of Contents</H2>
+
+1. <A HREF="#installation">Installation</A>
+<BR>
+2. <A HREF="#gettingstarted">Getting Started</A>
+<BR>
+3. <A HREF="#license">License</A>
+<BR>
+4. <A HREF="#history">Revision History</A>
+
+<P>
+<HR>
+<A NAME="installation"><H2>1. Installation</H2></A>
+
+<P>
+The M2MI Library requires
+Java Development Kit (JDK) 1.4.2.
+<P>
+(JDK 1.4.1 has a bug
+that prevents class edu.rit.m2mp.udp.UDPMulticastChannel
+from operating correctly.
+The M2MI Library uses several Java platform capabilities
+that did not exist in versions earlier than JDK 1.4.)
+<P>
+To install the M2MI Library,
+just unpack the JAR file
+containing the M2MI distribution,
+<TT>"m2miapi20040302.jar"</TT>.
+The distribution expands into a subdirectory
+named <TT>"m2miapi20040302"</TT>.
+<P>
+Documentation is stored under directory
+<TT>"m2miapi20040302/doc"</TT>;
+point your HTML browser to that directory.
+<P>
+Java source files and class files
+are stored under directory
+<TT>"m2miapi20040302/lib"</TT>;
+add that directory to your classpath
+when you run the programs.
+
+<P>
+<HR>
+<A NAME="gettingstarted"><H2>2. Getting Started</H2></A>
+
+<P>
+To get started with M2MI,
+do the following steps on a single machine:
+<OL TYPE=1>
+<LI>
+Configure the device ID for your device.
+Typically, you create a <TT>"device.properties"</TT> file
+in your home directory.
+See class <A HREF="edu/rit/device/DeviceProperties.html">DeviceProperties</A>
+for a description of what goes in the device properties file.
+<BR>&nbsp;
+<LI>
+Configure the M2MP Layer for your environment.
+Typically, you create an <TT>"m2mp.properties"</TT> file
+in your home directory.
+See package <A HREF="edu/rit/m2mp/package-summary.html">edu.rit.m2mp</A>
+and class <A HREF="edu/rit/m2mp/M2MPProperties.html">M2MPProperties</A>
+for a description of what goes in the M2MP properties file.
+<BR>&nbsp;
+<LI>
+Configure the M2MI Layer for your environment.
+Typically, you create an <TT>"m2mi.properties"</TT> file
+in your home directory.
+See package <A HREF="edu/rit/m2mi/package-summary.html">edu.rit.m2mi</A>
+and class <A HREF="edu/rit/m2mi/M2MIProperties.html">M2MIProperties</A>
+for a description of what goes in the M2MI properties file.
+<BR>&nbsp;
+<LI>
+Run an instance of the M2MP Daemon
+by typing this command
+in a separate process:
+<BR>&nbsp;
+<BR><TT>&nbsp;&nbsp;&nbsp;&nbsp;java edu.rit.m2mp.Daemon</TT>
+<BR>&nbsp;
+<BR>Typically, the M2MP Layer is configured to use the M2MP Daemon.
+(With some configuration options the M2MP Daemon is not needed.)
+For further information,
+see package <A HREF="edu/rit/m2mp/package-summary.html">edu.rit.m2mp</A>
+and class <A HREF="edu/rit/m2mp/Daemon.html">Daemon</A>.
+<BR>&nbsp;
+<LI>
+Run several instances of the Chat Demo application
+by typing this command
+in several separate processes:
+<BR>&nbsp;
+<BR><TT>&nbsp;&nbsp;&nbsp;&nbsp;java edu.rit.m2mi.chat1.ChatDemo1 &lt;name&gt;</TT>
+<BR>&nbsp;
+<BR>replacing <TT>&lt;name&gt;</TT> with a different user name
+in each process.
+Each instance displays a chat window.
+A line typed into any of the chat windows
+shows up in all the chat windows.
+For further information,
+see package <A HREF="edu/rit/m2mi/chat1/package-summary.html">edu.rit.m2mi.chat1</A>
+and class <A HREF="edu/rit/m2mi/chat1/ChatDemo1.html">ChatDemo1</A>.
+</OL>
+
+<P>
+Next, get some additional machines
+which are all able to send IP multicast packets to each other.
+Typically, the machines are all attached
+to the same wired Ethernet segment;
+the machines all use wireless Ethernet
+with the same access point;
+or the network routers between the machines
+are configured to forward IP multicast packets.
+Do the following steps:
+<OL TYPE=1 START=5>
+<LI>
+Configure the M2MP Layer and M2MI Layer on each machine.
+<BR>&nbsp;
+<LI>
+Run the M2MP Daemon in a separate process on each machine.
+<BR>&nbsp;
+<LI>
+Run an instance of the Chat Demo application
+in a separate process on each machine.
+A line typed into any chat window on any machine
+shows up in all the chat windows on all the machines.
+</OL>
+
+<P>
+After that, trying running the Slide Show application
+(see package <A HREF="edu/rit/slides/package-summary.html">edu.rit.slides</A>).
+Then try writing your own M2MI-based applications!
+
+<P>
+<HR>
+<A NAME="license"><H2>3. License</H2></A>
+
+<P>
+The documentation and Java source files
+in the M2MI Library,
+the M2MP Library,
+and the RIT Classfile Library
+("The Libraries")
+are copyright &copy; 2001-2004
+by Alan Kaminsky.
+All rights reserved.
+For further information, contact the author, Alan Kaminsky,
+at ark<FONT SIZE="1" COLOR="#FFFFFF">&shy;</FONT>&#64;<FONT SIZE="1" COLOR="#FFFFFF">&shy;</FONT>cs.rit.edu.
+<P>
+The Libraries are
+free software; you can redistribute them and/or modify them under the terms of
+the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+<P>
+The Libraries are distributed in the hope that they will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details.
+<P>
+A copy of the GNU General Public License
+is provided in the file <A HREF="edu/rit/classfile/doc-files/gpl.txt"><TT>gpl.txt</TT></A>.
+You may also obtain a copy of the GNU General Public License
+on the World Wide Web at
+<A HREF="http://www.gnu.org/licenses/gpl.html" TARGET="_top">http://www.gnu.org/licenses/gpl.html</A>
+or by writing to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+
+<P>
+<HR>
+<A NAME="history"><H2>4. Revision History</H2></A>
+
+<P>
+<DL COMPACT>
+
+<DT>23-Nov-2004
+<DD>
+In package edu.rit.m2mp:
+The M2MP channel access sublayer was eliminated
+and replaced with a simpler flow control sublayer,
+encapsulated in class FlowController.
+Added the ability to send each packet of an M2MP message multiple times
+to partially compensate for an unreliable data link layer;
+this feature is controlled by the <TT>edu.rit.m2mp.redundancy</TT> property
+in the M2MP properties file.
+As a result,
+the M2MP packet format was changed.
+Consequently, this version of M2MP
+will not interoperate with previous versions of M2MP.
+<P>
+In package edu.rit.m2mi:
+In class Handle,
+the <TT>getInterfaceNames()</TT> method
+was renamed <TT>getInterfaceName()</TT>,
+since the method returns only one interface name;
+and the <TT>iterator()</TT> method was added.
+<P>
+In package edu.rit.slides:
+Added the SlideShowToHtml program.
+Added constructors to class Slide and class SlideShow
+that take a Collection as an argument.
+<P>
+In package edu.rit.slides.items:
+Added classes ArcItem, DottedOutline, Point, and Size.
+Modified most of the other classes
+to make it easier to write programs to create slide shows.
+As a result,
+the serialization format for slide show objects was changed.
+Consequently, slide show objects
+serialized using the previous version
+must be re-created and re-serialized.
+<P>
+In package edu.rit.slides.test:
+Rewrote the test programs
+to use the new capabilities
+of packages edu.rit.slides and edu.rit.slides.items.
+<P>
+Packages edu.rit.parallel.particles
+and edu.rit.parallel.util were removed.
+<P>
+Fixed a bug in class edu.rit.m2mi.MethodInvokerSynthesizer.
+The wrong method signature was used
+when calling the <TT>writeByte()</TT>,
+<TT>writeShort()</TT>, or <TT>writeChar()</TT> methods
+in interface java.io.ObjectOutput.
+<P>
+Fixed a bug in class edu.rit.m2mp.MessageOutputStream.
+If the last fragment of a message exactly filled a packet,
+the last packet would not be sent,
+causing the receiver to time out the message.
+<BR>&nbsp;
+
+<DT>26-Aug-2004
+<DD>
+The device ID setting
+was pulled out of the M2MI and M2MP property files
+and put in its own separate device property file.
+(The device ID is supposed to be the same
+in both the M2MI Layer and the M2MP Layer,
+so it shouldn't be specified twice.)
+<P>
+Parts of the M2MP Layer were redesigned,
+with an eye towards using M2MP as the messaging layer in parallel programs.
+Specific changes include:
+<UL>
+<LI>
+The cryptographic message authentication code (MAC)
+in each M2MP packet was eliminated, for two reasons:
+(1) Doing so reduced the M2MP Layer's processing time.
+Parallel programs typically run on an isolated network
+and do not need the security of the MAC;
+however, parallel programs do need the best possible performance.
+(2) The security issues addressed by the MAC --
+packet alterations and insertions --
+are better addressed at other layers,
+such as a secure channel in the M2MI Layer or in the application.
+<BR>&nbsp;
+<LI>
+The experimental flow control mechanism in the previous version
+was replaced by a channel access sublayer using token passing.
+This achieves flow control
+and reduces contention for the broadcast medium
+much more robustly than the previous version.
+<BR>&nbsp;
+<LI>
+As a result of the above changes,
+the M2MP packet format was changed.
+Consequently, this version of M2MP
+will not interoperate with previous versions of M2MP.
+<BR>&nbsp;
+</UL>
+
+<DT>02-Mar-2004
+<DD>
+A complete rewrite of the M2MI Library and the M2MP Library.
+The new version has been tested on Linux, Solaris, and Cygwin/Windows.
+The major changes from the previous version are:
+<UL>
+<LI>
+The <TT>M2MI.initialize()</TT> method no longer has any arguments.
+Parameters needed to configure the M2MI Layer
+are now located in an "M2MI properties file."
+This simplifies coding M2MI-based applications
+and lets the M2MI Layer be configured independently
+of any particular applications.
+See class
+<A HREF="edu/rit/m2mi/M2MIProperties.html">edu.rit.m2mi.M2MIProperties</A>
+for further information.
+<BR>&nbsp;
+<LI>
+<A HREF="edu/rit/m2mi/Handle.html">Handle</A>,
+<A HREF="edu/rit/m2mi/Omnihandle.html">Omnihandle</A>,
+<A HREF="edu/rit/m2mi/Unihandle.html">Unihandle</A>, and
+<A HREF="edu/rit/m2mi/Multihandle.html">Multihandle</A>
+are now classes instead of interfaces.
+This simplifies the design of the M2MI Layer.
+<BR>&nbsp;
+<LI>
+A handle object now can only implement one target interface.
+(In the previous version, a handle object
+could implement more than one target interface.)
+Handles are supposed to be analogous to Java references.
+Since a Java reference has only one type,
+a handle should implement only one target interface.
+<BR>&nbsp;
+<LI>
+The M2MI proxy objects -- handles and method invokers --
+were redesigned to run faster and use less storage.
+M2MI calls within the same process
+are now an order of magnitude faster
+than they were in the previous version.
+This is a significant improvement
+for applications that have multiple M2MI target objects
+in a process.
+<BR>&nbsp;
+<LI>
+Because of the M2MI proxy object redesign,
+the M2MI invocation message format was changed.
+This version of M2MI will not interoperate
+with the previous version of M2MI.
+<BR>&nbsp;
+<LI>
+The M2MI Layer was redesigned
+to make it easier to add different kinds of handles,
+such as "secure handles" that encrypt and decrypt the invocations.
+However, this version of the M2MI Library
+still provides only "plain old" handles;
+other kinds of handles will be added in future versions.
+<BR>&nbsp;
+<LI>
+Parameters needed to configure the M2MP Layer
+are now located in an "M2MP properties file."
+This simplifies coding M2MP-based applications
+and lets the M2MP Layer be configured independently
+of any particular applications.
+See class
+<A HREF="edu/rit/m2mp/M2MPProperties.html">edu.rit.m2mp.M2MPProperties</A>
+for further information.
+<BR>&nbsp;
+<LI>
+The interface to the M2MP Layer was simplified.
+Classes and capabilities that have not been used
+in actual M2MI/M2MP-based applications
+were eliminated.
+<BR>&nbsp;
+<LI>
+The fixed-size packet pool in the previous version
+was eliminated.
+The M2MP Layer now dynamically allocates
+as many packets as it needs,
+until the Java Virtual Machine runs out of memory.
+<BR>&nbsp;
+<LI>
+The M2MP packet format was changed
+to include a cryptographic message authentication code (MAC)
+to detect packet alterations
+and prevent packet insertion attacks.
+Consequently, this version of M2MP
+will not interoperate with the previous version of M2MP.
+<BR>&nbsp;
+<LI>
+A flow control mechanism was added
+to the M2MP channel classes
+that transport M2MP packets using UDP datagrams.
+This attempted to solve a problem with the previous version of M2MP:
+When sending a long M2MP message,
+the sender could send packets
+faster than the receivers could process them,
+resulting in receiver buffer overruns,
+lost packets,
+and aborted messages.
+<I>However, the present flow control mechanism
+is still experimental,
+is not fully tested,
+and must be considered unproven.</I>
+<BR>&nbsp;
+<LI>
+The process that routes M2MP messages
+between multiple client processes on the same host,
+formerly class edu.rit.m2mp.ip.M2MPRouter,
+was changed to class edu.rit.m2mp.Daemon and redesigned.
+The M2MP Daemon process is configured via the M2MP properties file.
+The M2MP client processes can be configured
+either to go through the M2MP Daemon process
+or to go directly to the external network
+via the M2MP properties file.
+</UL>
+<P>
+This version also includes the following
+example M2MI-based applications:
+<UL>
+<LI>
+Chat Demo, an ad hoc collaborative application
+(package <A HREF="edu/rit/m2mi/chat1/package-summary.html">edu.rit.m2mi.chat1</A>).
+<BR>&nbsp;
+<LI>
+Slides, an ad hoc collaborative application
+(package <A HREF="edu/rit/slides/package-summary.html">edu.rit.slides</A>).
+<BR>&nbsp;
+<LI>
+Particle Simulation, a parallel program
+(package <A HREF="edu/rit/parallel/particles/package-summary.html">edu.rit.parallel.particles</A>).
+<BR>&nbsp;
+</UL>
+
+<DT>02-Jul-2002
+<DD>
+Changed the channel implementation
+used to broadcast M2MP messages
+to all processes on the local host
+so it will work properly on Sun Solaris systems
+as well as Linux systems;
+the implementation is now contained in classes
+edu.rit.m2mp.ip.M2MPRouter (revised) and
+edu.rit.m2mp.ip.M2MPRouterChannel (new).
+Changed the chat demo application
+(class edu.rit.m2mi.test.ChatDemo)
+to put the user interface in a separate class
+from the exported chat object.
+<BR>&nbsp;
+
+<DT>07-Jun-2002
+<DD>
+Initial version.
+Released under the terms of the GNU General Public License.
+
+</DL>
+
+</BODY>
+</HTML>

@@ -1,0 +1,875 @@
+head	1.10;
+access;
+symbols;
+locks
+	rjw2183:1.10; strict;
+comment	@# @;
+
+
+1.10
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.11.11.04.28.40;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.09.23.03.59.57;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.07.16.18.35.43;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.07.01.19.49.55;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.29.20.00.03;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.23.19.57.33;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.17.19.19.26;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.15.19.52.00;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.08;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The room class contains information about a single room.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: Room.java,v 1.9 2004/11/11 04:28:40 rjw2183 Exp $
+ *
+ */
+ package m2mimud.state;
+ 
+ import java.io.Externalizable;
+ import java.io.ObjectOutput;
+ import java.io.ObjectInput;
+ import java.io.IOException;
+ import java.util.Vector;
+ import java.util.Iterator;
+ import edu.rit.m2mi.Eoid;
+ 
+ public class Room
+ implements Externalizable
+ {
+	
+	/** 
+	 * Integer codes for the type of room this is
+	 */
+	public static final int GRASSY_FIELD  = 1;
+	public static final int WOODS = 2;
+	public static final int WATER = 3;
+	
+	private Vector myPlayers;  // unihandles to the players who are in this room
+	private Vector myMobs;  // a vector used to hold the myMobs in this room
+	
+ 	private boolean[] exits; // valid exits from the room
+	private String exitsString; // the descrption of the room
+	private boolean pondExists;
+	int roomType; //  the type of room this is
+	private Vector houses;
+	private XYloc myLoc;
+	
+	
+	/**
+	 * Empty Constructors
+	 */
+	public Room()
+	{
+		exits = new boolean[4];
+		exitsString = new String();
+		myPlayers = new Vector();				
+		myMobs = new Vector();	
+		houses = new Vector();	
+		myLoc = new XYloc();
+	}
+	
+	/**
+	 * Constructs a room from the given XYloc and type.
+	 * @@param: loc The xyloc of this room, used to determine initial exits
+	 * @@param: type The type of room this is
+	 */
+	public Room( XYloc loc, int type, int maxX, int maxY )
+	{
+		roomType = type;
+		myLoc = new XYloc( loc );
+		
+		int north = 0;
+		int south = 1;
+		int east = 2;
+		int west = 3;		
+		
+		// Set up the exist based on the location of this tile.
+		// An x value of 0 or 0 indicates this is a side border tile.
+		// A y value of 0 or 9	indication this is top/bottom 
+		// border tile.
+		exits = new boolean[4];
+		exits[0] = true;
+		exits[1] = true;
+		exits[2] = true;
+		exits[3] = true;
+		
+		if( loc.x == 0 )
+			exits[west] = false;
+		
+		if( loc.x == maxX - 1 )
+			exits[east] = false;
+			
+		if( loc.y == 0 )
+			exits[south] = false;
+		
+		if( loc.y == maxY - 1 )
+			exits[north] = false;
+	
+		
+		// Build the room's description
+		StringBuffer extMess = new StringBuffer();
+		if( exits[north] == true )
+			extMess.append( "north " );
+		
+		if( exits[south] == true )
+			extMess.append( "south " );			
+		
+		if( exits[east] == true )
+			extMess.append( "east " );
+		
+		if( exits[west] == true )
+			extMess.append( "west " );
+		
+		exitsString = extMess.toString();
+		pondExists = false;
+		
+		myPlayers = new Vector();		
+		myMobs = new Vector();		
+		houses = new Vector();
+	}
+	
+	/**
+	 * Detemines if the move is legal from this room.
+	 * @@param direction The direction to move to, must be between 0 and 3.
+	 */
+	public boolean checkMove( int direction )
+	{
+		return exits[direction];
+	}
+	 
+	/**
+	 * Returns the text description of the room
+	 */
+	public String getExitString()
+	{
+	 	return exitsString;
+	}
+	
+	/**
+	 * Returns the type of room this is, a grassy field, a woodland area, or filled with water
+	 */
+	public int getRoomType()
+	{
+		return roomType;
+	}
+	 
+	/**
+	 * Adds a player to this room
+	 * @@param player The unihandle to the game unit which controls the player
+	 */
+	public void addPlayer( Eoid playerId )
+	{
+		if( myPlayers.indexOf( playerId ) == -1 )
+			myPlayers.add( playerId );
+	}
+	 
+	/**
+	 * Removes the player from the room
+	 * @@param: player The player to remove.
+	 */
+	public void removePlayer( Eoid playerId )
+	{	 	
+		myPlayers.remove( playerId );
+	}
+	 
+	/** 
+	 * Returns an iterator which can be used to access the players
+	 */
+	public Iterator getPlayers()
+	{
+		return myPlayers.iterator();
+	}
+	
+	/**
+	 * Returns whether or not this room has players
+	 */
+	public boolean hasPlayers()
+	{
+		return !myPlayers.isEmpty();
+	}
+		
+	/**
+	 * Adds the given mob to the room
+	 * @@param theMoe The mob to add
+	 */
+	public void addMob( MobKey theMob )
+	{			
+		if( myMobs.indexOf( theMob ) == -1 )
+			myMobs.add( theMob );
+	}
+	
+	/**
+	 * Checks to see if the room has the specified mob
+	 * @@param theMob The mobkey of the mob to check
+	 */
+	boolean hasMob( MobKey theMob )
+	{
+		return ( myMobs.indexOf( theMob ) != -1 );
+	}
+	
+	/**
+	 * Returns the number of Mobs in the room
+	 */
+	public int getMobCount()
+	{		
+		return myMobs.size();
+	}
+	
+	/**
+	 * Returns an interator for all the myMobs in this room
+	 */
+	public Iterator getMobs()
+	{
+		return myMobs.iterator();
+	}
+	
+	
+	/**
+	 * Removes (and returns) the mob from the room 
+	 * @@param id The of the mob
+	 * @@param type  The type of the mob 
+	 */
+	public void removeMob( MobKey theKey )
+	{
+		myMobs.remove( theKey );		
+	}
+	
+	/** 
+	 * Rmoves all myMobs and any merchants from this room.
+	 */
+	public void clear()
+	{				
+		myMobs.clear();		
+		myPlayers.clear();				
+	}		
+	
+	
+	/**
+	 * Adds a house to the room.
+	 */
+	public synchronized void addHouse( House newHouse )
+	{
+		if( houses.indexOf( newHouse.getOwner() ) == -1 )
+			houses.add( newHouse.getOwner() );		
+	}
+	
+	/**
+	 * Gets a house. Returns null if the index is not valid
+	 * @@param index The index of the house to return.
+	 */
+	public synchronized Eoid getHouse( int index )
+	{
+		Eoid retVal = null;
+		if( index < houses.size() )
+			retVal = (Eoid)houses.elementAt( index );
+		return retVal;
+	}
+	
+	/**
+	 * Removes the house from the room
+	 * @@param id The eoid of the house
+	 */
+	public void removeHouse( Eoid id )
+	{
+		houses.remove( id );
+	}
+	
+	/** 
+	 * Returns if there are houses in this room
+	 */
+	public boolean hasHouses()
+	{
+		return houses.size() > 0;
+	}
+		
+	/** 
+	 * Returns an iterator which can be used to access this room's houses.
+	 */
+	public Iterator getHouses()
+	{
+		return houses.iterator();
+	}
+	
+	/**
+	 * Checks to see if the given XYloc object
+	 * corresponds the location of this room
+	 */
+	public boolean checkLoc( XYloc other )
+	{
+		return myLoc.equals( other );
+	}
+	
+	/**
+	 * Returns the XYloc object that contains the coordinates of this room
+	 */
+	public XYloc getLoc()
+	{
+		return myLoc;
+	}
+	
+	
+	/**
+	 * Write this room out to output.
+	 * @@param: out The output object to write to.
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+		int numHouses = houses.size();
+			
+		Iterator houseIter = houses.iterator();
+		
+		out.writeInt( roomType );
+		out.writeObject( exitsString );		
+		for( int i = 0; i < 4; i++ )
+			out.writeObject( new Boolean( exits[i] ) );		
+		
+		out.writeInt( numHouses );
+		while( houseIter.hasNext() )
+			out.writeObject( (Eoid)houseIter.next() );
+		out.writeObject( myLoc );		
+	} 
+	 
+	/** 
+	 * Read this object in from input
+	 * @@param: in The input object to read from.
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{
+		roomType = in.readInt();
+		exitsString = (String)in.readObject();
+		for( int i = 0; i < 4; i++ )
+			exits[i] = ((Boolean)in.readObject()).booleanValue();	
+		
+		int numHouses = in.readInt();
+		for( int i = 0; i < numHouses; i++ )		
+	  		houses.add( (Eoid)in.readObject() );
+		myLoc = (XYloc)in.readObject();
+	}
+ }
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.8 2004/09/23 03:59:57 rjw2183 Exp $
+d21 4
+a24 1
+		
+d130 7
+a136 7
+	 /**
+	  * Returns the type of room this is, a grassy field, a woodland area, or filled with water
+	  */
+	 public int getRoomType()
+	 {
+	 	return roomType;
+	 }
+d138 6
+a143 6
+	 /**
+	  * Adds a player to this room
+	  * @@param player The unihandle to the game unit which controls the player
+	  */
+	 public void addPlayer( Eoid playerId )
+	 {
+d146 1
+a146 1
+	 }
+d148 6
+a153 6
+	 /**
+	  * Removes the player from the room
+	  * @@param: player The player to remove.
+	  */
+	 public void removePlayer( Eoid playerId )
+	 {	 	
+d155 1
+a155 1
+	 }
+d157 7
+a163 7
+	 /** 
+	  * Returns an iterator which can be used to access the players
+	  */
+	  public Iterator getPlayers()
+	  {
+	 	return myPlayers.iterator();
+	  }
+d165 5
+a169 2
+	  public boolean hasPlayers()
+	  {
+d171 2
+a172 3
+	  }
+	
+	
+d183 4
+d191 1
+d193 1
+a193 1
+	 * Returns the number of myMobs in the room
+d258 1
+d275 4
+d284 3
+d297 4
+a300 4
+	 public void writeExternal( ObjectOutput out )
+	 throws IOException
+	 {
+	 	int numHouses = houses.size();
+d313 1
+a313 1
+	 } 
+d315 8
+a322 8
+	 /** 
+	  * Read this object in from input
+	  * @@param: in The input object to read from.
+	  */
+	  public void readExternal( ObjectInput in )
+	  throws IOException, ClassNotFoundException
+	  {
+	  	roomType = in.readInt();
+d331 1
+a331 1
+	  }
+@
+
+
+1.8
+log
+@Added something
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.7 2004/07/16 18:35:43 rjw2183 Exp $
+d180 1
+a180 1
+		return (myMobs.indexOf( theMob ) != -1);
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.6 2004/07/01 19:49:55 rjw2183 Exp rjw2183 $
+d150 2
+a151 2
+	 {
+	 	myPlayers.remove( playerId );
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.5 2004/06/29 20:00:03 rjw2183 Exp rjw2183 $
+d215 1
+a215 4
+		myPlayers.clear();		
+		Iterator i = houses.iterator();
+		while( i.hasNext() )
+			((House)i.next()).clearPlayers();
+d240 8
+d293 2
+a294 3
+			out.writeObject( (House)houseIter.next() );
+		out.writeObject( myLoc );
+		
+d311 1
+a311 1
+	  		houses.add( (House)in.readObject() );
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.4 2004/06/23 19:57:33 rjw2183 Exp rjw2183 $
+a126 9
+	
+	/** 
+	 * Returns whether or not a pond exists in this room
+	 */
+	public boolean hasPond()
+	{
+		return pondExists;
+	}
+	
+d282 1
+a282 2
+		out.writeObject( exitsString );
+		out.writeObject( new Boolean( pondExists ) );
+a301 2
+		
+		pondExists = ((Boolean)in.readObject()).booleanValue();
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.3 2004/06/17 19:19:26 rjw2183 Exp rjw2183 $
+a27 2
+	private Merchant myMerchant;
+ 	boolean merchantPresent;
+d44 1
+a44 3
+		myPlayers = new Vector();		
+		myMerchant = null;
+		merchantPresent = false;
+d55 1
+a55 1
+	public Room( XYloc loc, int type )
+d78 1
+a78 1
+		if( loc.x == 99 )
+d84 1
+a84 1
+		if( loc.y == 99 )
+d105 1
+a105 3
+		myPlayers = new Vector();
+		myMerchant = null;
+		merchantPresent = false;
+a126 7
+	/**
+	 * Marks this room as having a pond.
+	 */
+	public void digPond()
+	{
+		pondExists = true;
+	}
+d150 2
+a151 1
+		myPlayers.add( playerId );
+a162 6
+	public void addMerchant( Merchant theMerchant )
+	{		
+		myMerchant = theMerchant;
+		merchantPresent = true;
+	} 
+	
+d166 2
+a167 2
+	public Iterator getPlayers()
+	{
+d169 1
+a169 1
+	}
+d171 2
+a172 2
+	public boolean hasPlayers()
+	{
+d174 1
+a174 1
+	}
+a175 4
+	public boolean hasMerchant()
+	{
+		return merchantPresent;
+	}
+a176 6
+	public void refreshMerchantTimer()
+	{
+		if( myMerchant != null )
+			myMerchant.scheduleNextMessage();
+	}
+	
+d183 2
+a184 1
+		myMobs.add( theMob );
+d187 4
+d222 1
+a222 4
+	{
+		if( myMerchant != null )
+			myMerchant.stop();
+		merchantPresent = false;		
+d224 1
+a224 2
+		myPlayers.clear();
+		myMerchant = null;
+a229 4
+	public int getMerchantType()
+	{
+		return myMerchant.getType();
+	}
+d236 2
+a237 3
+		if( houses.indexOf( newHouse ) == -1 )
+			houses.add( newHouse );
+		System.out.println( houses.size() );
+d244 1
+a244 1
+	public synchronized House getHouse( int index )
+d246 1
+a246 1
+		House retVal = null;
+d248 1
+a248 1
+			retVal = (House)houses.elementAt( index );
+d273 1
+a273 1
+	public String getLoc()
+d275 1
+a275 1
+		return myLoc.toString();
+d278 1
+a278 4
+	public boolean hasMob( MobKey theKey )
+	{
+		return myMobs.indexOf( theKey ) != -1;
+	}
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.2 2004/06/15 19:52:00 rjw2183 Exp $
+a14 1
+ import java.util.HashMap;
+a25 3
+	public static final int NO_SUCH_MOB = 1;
+	public static final int NO_FREE_MOB = 2;
+	
+d27 1
+a34 2
+	
+	private HashMap mobs;
+a35 1
+	
+d40 1
+a40 2
+	 * Dummy Constructorobs = new HashMap();
+	 * NEVER CALL
+d49 1
+a49 1
+		mobs = new HashMap();	
+d112 1
+a112 1
+		mobs = new HashMap();		
+a204 7
+	public void refreshMobTimer( MobKey theKey )
+	{		
+		Mob theMob = (Mob)mobs.get( theKey );		
+		if( theMob != null )
+			theMob.restartMovementTimer();		
+	}
+
+d209 1
+a209 1
+	public void addMob( Mob theMob )
+d211 1
+a211 1
+		mobs.put( theMob.getKey(), theMob );
+d215 1
+a215 1
+	 * Returns the number of mobs in the room
+d219 1
+a219 1
+		return mobs.size();
+d223 1
+a223 5
+	 * This checks to see if the room has a valid mob of the given name.
+	 * A valid mob (a) exists in the room and (b) is not under attack
+	 * It returns 0 if the mob is valid, and NO_SUCH_MOB or NO_FREE_MOB
+	 * there are no valid mobs.
+	 * @@param name The name of the mob
+d225 1
+a225 1
+	public int checkMob( String name )
+d227 1
+a227 21
+		int retVal = -1;
+		int mobCount = 0;
+		boolean notAttack = false;
+		Iterator theMobs = mobs.values().iterator();
+		while( theMobs.hasNext() )
+		{
+			Mob temp = (Mob)theMobs.next();
+			if( temp.getName().equals( name ) && temp.isAlive() )
+			{
+				mobCount++;
+				if( !temp.isUnderAttack() )
+					notAttack = true;
+			}
+		}
+		if( notAttack == true && mobCount > 0 )
+			retVal = 0;
+		else if( mobCount == 0 )
+			retVal =  NO_SUCH_MOB;
+		else if( notAttack == false )
+			retVal = NO_FREE_MOB;
+		return retVal;
+a229 21
+	/**
+	 * Return the first fre mob of the given name
+	 * @@param name The name of the mob
+	 */
+	public Mob getFreeMob( String name )
+	{
+		Mob retVal = null;
+		Iterator theMobs = mobs.values().iterator();
+		boolean found = false;
+		while( theMobs.hasNext() && !found )
+		{
+			Mob temp = (Mob)theMobs.next();
+			if( temp.getName().equals( name ) && 
+			    !temp.isUnderAttack() )
+			{	
+			 	retVal = temp;
+				found = true;
+			}
+		}   
+		return retVal;
+	}
+d236 1
+a236 1
+	public Mob removeMob( MobKey theKey )
+d238 1
+a238 1
+		return (Mob)mobs.remove( theKey );		
+a240 5
+	public Iterator getMobs()
+	{
+		return mobs.values().iterator();
+	}
+	
+d242 1
+a242 1
+	 * Rmoves all mobs and any merchants from this room.
+d249 1
+a249 1
+		mobs.clear();		
+a299 12
+	/** 
+	 * Gets the specified mob
+	 * @@param key The key of the mob to return
+	 */
+	public Mob getMob( MobKey key )
+	{
+		Mob retVal = null;
+		if( mobs.containsKey( key ) )
+			retVal = (Mob)mobs.get( key );
+		return retVal;
+	}
+	
+d310 4
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.1 2004/06/10 17:00:08 rjw2183 Exp $
+d42 1
+d44 1
+d58 1
+d69 1
+d89 1
+a89 1
+		if( loc.x == 9 )
+d95 1
+a95 1
+		if( loc.y == 9 )
+d376 10
+d406 1
+d427 1
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: Room.java,v 1.17 2004/06/09 19:51:24 rjw2183 Exp rjw2183 $
+d360 12
+@

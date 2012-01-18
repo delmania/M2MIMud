@@ -1,0 +1,166 @@
+head	1.5;
+access;
+symbols;
+locks
+	rjw2183:1.5; strict;
+comment	@# @;
+
+
+1.5
+date	2005.01.06.13.46.11;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.09.23.01.13.19;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.07.06.19.59.40;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.15.19.52.11;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.12.47;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The StringIntCommand is for commands which carry both a string and
+ * it value.  an exampe of this would be the buy command, which contains
+ * the String id of the item and the int amount the person is buying.
+ *
+ * @@author: Robert Whitcomb
+ * @@versio: $Id: StringIntCommand.java,v 1.4 2004/09/23 01:13:19 rjw2183 Exp $
+ */
+ 
+ package m2mimud.command;
+ 
+ public class StringIntCommand
+ extends Command
+ {
+ 	/**
+	 * Since the StringIntCommand handles buy and selling, these are here
+	 */
+	public static final int BUY = 0;
+	public static final int SELL = 1;
+	
+	/**
+	 * Since the stringint command is used to handle an attack command,
+	 * these symbols are here to indicate what kind of attack
+	 */
+	public static final int PUNCH = 0;
+	public static final int KICK = 1;
+	public static final int SLASH = 2;
+	public static final int THRUST = 3;
+	
+	/**
+	 * These symbos are here for the load command
+	 */
+	public static final int PLAYER = 0;
+	public static final int MAP = 1;
+	public static final int WORLD = 2;
+	
+	private String myStringValue; // the string value for this command
+	private int myIntValue; // the int value for this command
+	
+	/**
+	 * Constructor
+	 * @@param type The type of command this is
+	 * @@param intValue The integer value this command carries
+	 * @@param stringValue The string value this command carries
+	 */
+	public StringIntCommand( int type, int intValue, String stringValue )
+	{
+		super( type );
+		myIntValue = intValue;
+		myStringValue = new String( stringValue );
+	}
+	
+	/**
+	 * Returns the int value associated with this command
+	 */
+	public int getIntData()
+	{
+		return myIntValue;
+	}
+	
+	/**
+	 * Returns the string value associated with this command
+	 */
+	public String getStringData()
+	{
+		return myStringValue;
+	}
+}
+@
+
+
+1.4
+log
+@Added the command to leave and enter a house.
+@
+text
+@d7 1
+a7 1
+ * @@versio: $Id: StringIntCommand.java,v 1.3 2004/07/06 19:59:40 rjw2183 Exp $
+d20 1
+d36 1
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@versio: $Id: StringIntCommand.java,v 1.2 2004/06/15 19:52:11 rjw2183 Exp $
+d54 1
+a54 1
+	public int getIntValue()
+d62 1
+a62 1
+	public String getStringValue()
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@versio: $Id: StringIntCommand.java,v 1.1 2004/06/10 17:12:47 rjw2183 Exp $
+d29 6
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d7 1
+a7 1
+ * @@versio: $Id$
+d20 8
+@

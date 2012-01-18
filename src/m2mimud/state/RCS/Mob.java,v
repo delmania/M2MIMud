@@ -1,0 +1,1323 @@
+head	1.17;
+access;
+symbols;
+locks
+	rjw2183:1.17; strict;
+comment	@# @;
+
+
+1.17
+date	2005.01.13.15.47.06;	author rjw2183;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2004.12.10.02.29.16;	author rjw2183;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2004.11.11.04.28.40;	author rjw2183;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2004.10.21.02.47.24;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.09.24.03.43.35;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.09.16.02.39.28;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.09.10.02.32.56;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.08.16.18.30.07;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.08.12.01.21.22;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.07.22.19.33.30;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.07.16.18.35.43;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.23.19.57.33;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.16.00.51.45;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.15.19.52.00;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.11.19.16.47;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.08;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@/**
+ * A mob in an online game does  not refer to a large collection of people (which is usually called
+ * a zerg).  It is actually shorthand for "mobile enemy" which refers to any moving NPC 
+ * which (a) may attack the player ot (b) can be attacked by the player.  It is called mobile
+ * because it moves from time to time.  In this case, mobs will move only into rooms which do not have
+ * water and do not have a merechant in it.
+ * @@author: Robert Whitcomb
+ * @@version: $Id: Mob.java,v 1.16 2005/01/06 17:38:24 rjw2183 Exp rjw2183 $
+ */
+
+ package m2mimud.state;
+ 
+ import java.io.*;
+ import java.lang.Integer;
+ import java.util.Random;
+ import edu.rit.util.Timer;
+ import edu.rit.util.TimerTask;
+ import edu.rit.util.TimerThread;
+ import edu.rit.m2mi.Eoid;
+ import java.util.Date;
+ import m2mimud.command.special.MobCommand;
+ 
+ public class Mob
+ implements Externalizable
+ {
+ 	private static int TWO_MINUTES = 120000;
+	private static int THREE_MINUTES = 180000;
+	private MobKey myKey; // the key of this mob	
+	private XYloc currentLocation; // the current location of the mob
+	private boolean alive; // whether or not the mob is alive
+	private Timer movementTimer; // timer used to move the mob
+	private Timer attackTimer; // the timer used to perform an attack on its target
+	private Timer respawnTimer; // timer used to respawn the mob
+	private Timer regenTimer; // a timer used to regen a monster's hit points
+	private Random movementPRNG; // prng used to randomize when the mob moves		
+	private World myWorld; // a reference to the world this mob is in 	
+	private int maxHitPoints; // the total number of hit points a mob can have.
+	private long myAttackSpeed; // the attack speed of the mob
+	private int currentHitPoints; // the current number of hit points a mob has
+	private int myDamage; // the damage the mob causes to targets
+	private String  myName; // The name of the mob		
+	private boolean underAttack; // a boolean used to indicate if the mob is under attack by something
+	private MobListener myListener; // the listener for this mob
+	int myGold; // the amount of gold this mob drops
+	String myDrop; // the id of the item this mob drops
+	int myExp; // the amount of exp this mobs drops
+	boolean tempMob; // indicates if this is a temporary mob.
+	private Eoid myCurrentTarget; // this is the current target 
+	private Date timeStamp; // a timestamp used for combat purposes.
+	
+	
+	/*
+	 * This timer is used to move the mob.  Basically,
+	 * when it goes off, the mob informs its listener that it needs to be moved,
+	 * passing along the current location of the mob.
+	 */
+	private class MovementTimerTask
+	implements TimerTask
+	{
+		public MovementTimerTask()
+		{
+		}
+		
+		public void action( Timer theTimer )
+		{
+			moveMob( theTimer );
+		}
+	}
+	
+	/**
+	 * Thisfunction calculates a random direction for the mob to move in.
+	 * It them passes this direction to the world to see if a move in that
+	 * direction is valud for the mob.  If so, the mob informs the listener
+	 * that it needs to be moved.
+	 * 
+	 * @@param  theTimer The movement timer indicated that the mob needs to move
+	 * now
+	 */
+	private void moveMob( Timer theTimer )
+	{				
+		if( theTimer.isTriggered() && myListener != null )					
+		{												
+			int newDirection = new Random().nextInt( 4 );		
+			MobMove myMove = myWorld.checkMobMove( myKey, newDirection );			
+			if( myMove != null )
+				myListener.moveMob( myMove );
+			else
+				restartMovementTimer();
+			
+		}
+		
+	}
+	
+	/**
+	 * This timer is used to inform the listener that the mob has attacked its target.
+	 * When it goes off, it informs its listener who it is attack and how much damage it is 
+	 * going to hit the target with (base damage, this value is adjusted by the the target's
+	 * armor.
+	 */
+	private class AttackTimerTask
+	implements TimerTask
+	{		
+		public AttackTimerTask()
+		{
+		}
+		
+		public void action( Timer theTimer )
+		{
+			attackTarget( theTimer );
+		}
+	}
+	
+	/**
+	 * Informs the listener that the mob is attacking its target
+	 */ 
+	private void attackTarget( Timer theTimer )
+	{
+		if( ( theTimer.isTriggered() && !theTimer.isStopped() ) &&
+		    myListener != null )					
+			myListener.attackTarget( myDamage, myName ); 			
+	}
+	
+	
+	/**
+	 * Private class to hold the respawn timer
+	 */		
+	private class RespawnTimerTask
+	implements TimerTask
+	{
+		public RespawnTimerTask()
+		{
+		}
+		
+		public void action( Timer theTimer )
+		{			
+			respawnMob( theTimer );
+		}
+	}
+	
+	/** 
+	 * Informs the listener to respawn its mob
+	 */
+	private void respawnMob( Timer theTimer )
+	{		
+		if( theTimer.isTriggered() && myListener != null )					
+			myListener.respawnMob( myKey );
+		
+	}
+		
+	/** 
+	 * Constructor
+	 */ 
+	public Mob( MobKey theKey, String theName, XYloc initialLoc,
+	            int maxHP, int damage, long atkSpd, World theWorld, MobListener theListener, 
+		    int gold, int exp, String drop )
+	{
+		myWorld = theWorld;
+		myListener = theListener;
+		maxHitPoints = maxHP;
+		currentHitPoints = maxHP;
+		myDamage = damage;
+		alive = true;	
+		underAttack = false;		
+		myGold = gold;
+		myExp = exp;
+		myDrop = new String( drop );
+		currentLocation = new XYloc( initialLoc );
+		movementPRNG = new Random();
+		myKey = new MobKey( theKey );
+		myAttackSpeed = atkSpd;
+		myName = theName;
+		movementTimer = TimerThread.getDefault().createTimer( new MovementTimerTask() );
+		attackTimer = TimerThread.getDefault().createTimer( new AttackTimerTask() );		
+		movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THREE_MINUTES ) );
+		respawnTimer = TimerThread.getDefault().createTimer( new RespawnTimerTask() );
+		timeStamp = null;	
+	}
+	
+	/**
+	 * Empty constructor used by readExternal
+	 */ 
+	public Mob()
+	{
+		myName = new String();
+		myKey = new MobKey();		
+		currentLocation = new XYloc( 0, 0 );
+		myListener = null;
+		movementPRNG = new Random();
+		myDrop = null;
+		movementTimer = TimerThread.getDefault().createTimer( new MovementTimerTask() );
+		attackTimer = TimerThread.getDefault().createTimer( new AttackTimerTask() );	
+		respawnTimer = TimerThread.getDefault().createTimer( new RespawnTimerTask() );			
+		timeStamp = null;
+	}
+	
+	/**
+         * Registers an attacker with this mob.
+	 * This places it in attack mode, stops the movement timer
+	 * and starts the attack timer.
+	 * @@param target The id of the player who is the target
+	 * @@param location This
+	 */
+	public Date startAttack( Eoid target, XYloc location )
+	{
+		movementTimer.stop();
+		attackTimer.start( 0, myAttackSpeed );
+		underAttack = true;
+		myCurrentTarget = target;
+		timeStamp = new Date();		
+		return timeStamp;				
+				
+	}
+       
+       /**
+        * Places the mob in silent combat mode, which means it will not inform its
+	* listener when it attack.
+	* @@param target the Target of the mob
+	* @@param location the location of the mob
+	*/
+       public void startAttackSilent( Eoid target,  Date theTimeStamp )
+       {
+		movementTimer.stop();
+		underAttack = true;
+		myCurrentTarget = target;
+		timeStamp = theTimeStamp;		
+       }
+       
+	/**
+	 * Stops the mob from attacking	
+ 	 * @@param target the id of the player to stop attacking
+	 */
+	public void stopAttack()
+	{       				
+		myCurrentTarget = null;
+		attackTimer.stop();
+		underAttack = false;				
+		if( !alive )
+			respawnTimer.start( TWO_MINUTES +  movementPRNG.nextInt( TWO_MINUTES ) );			
+		else
+		{
+			// retore the monster to full health
+			currentHitPoints = maxHitPoints;
+			movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THREE_MINUTES) );
+		}		
+	}
+
+	/**
+         * Returns the time the mob start combat
+         */
+	public Date getCombatTimeStamp()
+	{	
+		return timeStamp;
+	}
+       
+	/**
+         * Damages the mob.  Returns true idf the mob is dead.
+	 * @@patram damage The amount of damage the mob takes.
+	 */
+	public void damageMob( int damage )
+	{       		
+		currentHitPoints -= damage;
+		if( currentHitPoints <= 0 )
+			kill();
+	}
+       
+	/**
+	 * restarts the movement timer
+	 */
+	public void restartMovementTimer()
+	{
+       		movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THREE_MINUTES ) );
+	}
+	
+	/** 
+	 * Returns the current location of this mob
+	 */
+	public XYloc getCurrentLocation()
+	{
+		return currentLocation;
+	}
+	
+	/**
+	 * Returns the type of monster this is
+	 */
+	public int getType()
+	{
+		return myKey.getType();
+	}
+	
+	/**
+	 * Returns the ID of this mob
+	 */
+	public MobKey getKey()
+	{
+		return myKey;
+	}
+	
+	/**
+	 * Get the name of the mob
+	 */
+	public String getName()
+	{
+		return myName;
+	}
+	
+	/** 
+	 * Returns whether or not this mob is alive
+	 */
+	public boolean isAlive()
+	{
+		return alive;
+	}
+	
+	/**
+	 * Update the mob's location
+	 * @@param direction The direction the monster moves in
+	 */
+	public void updateLocation( XYloc location )
+	{		
+		currentLocation = new XYloc( location );
+	}
+	
+	/**
+	 * Returns whether or not other is equal to this object
+	 * @@param other The object to comapre to.
+	 */
+	public boolean equals( Object other )
+	{
+		boolean retVal = false;
+		if( other != null && other.getClass().equals( Mob.class ) )
+		{
+			Mob otherMob =(Mob)other;			
+			
+			if( myKey.equals( otherMob.myKey ) )
+			{
+				retVal = 
+				currentLocation.equals( otherMob.currentLocation ) &&
+				alive == otherMob.alive && 
+				underAttack == otherMob.underAttack;
+				
+				if( retVal == true && underAttack )
+					retVal = myCurrentTarget.equals( otherMob.myCurrentTarget );
+			}			
+			
+		}
+		return retVal;
+	}
+	
+	/**
+	 * Sets the listener for this mob
+	 * @@param list The listener
+	 */
+	public void setList( MobListener list, World theWorld )
+	{
+		myListener  = list;
+		myWorld = theWorld;
+	}
+	
+	/**
+	 * Returns whether or not this mob is in combat
+	 */
+	public boolean isUnderAttack()
+	{
+		return underAttack;
+	}
+	
+	/**
+	 * Returns the current health of the mob
+	 */
+	public int getCurrentHealth()
+	{
+		return currentHitPoints;
+	}
+	
+	
+	/**
+	 * Returns the target of the mob
+	 */
+	public Eoid getTarget()
+	{
+		return myCurrentTarget;
+	}
+	/**
+	 * Kills the mob
+	 */
+	public void kill()
+	{
+		alive = false;
+		currentHitPoints = 0;
+		stopAttack();
+	}
+	
+	/**
+	 * Respawns the monster at the location
+	 * where it died.
+	 */
+	public void respawn()
+	{
+		alive = true;
+		currentHitPoints = maxHitPoints;
+		respawnTimer.stop();
+		restartMovementTimer();
+	}
+	
+	/**
+	 * Returns the amount of gold this mob
+	 * drops when it is killed.
+	 */
+	public int getGold() 
+	{
+		return myGold;
+	}
+	
+	/** 
+	 * Returns the amount of EXP this mob
+	 * drops when it is killed.
+	 */
+	public int getExp()
+	{
+		return myExp;
+	}
+	
+	/**
+	 * Returns the item id for the item
+	 * that this mob drops upon death
+	 */
+	public String getDrop()
+	{
+		return myDrop;
+	}
+	
+	/**
+	 * This causes either the mob's movement or respawn timers to 
+	 * go off immediately.
+	 * @@param which Which timer to go off
+	 */
+	public void doNow( int which )
+	{
+		if( which == MobCommand.MOVE )
+			movementTimer.start( 0 );
+		else if( which == MobCommand.RESPAWN )
+			respawnTimer.start( 0 );
+	}
+	
+	/**
+	 * If this is a temporary mob, this returns back the key which is 
+	/** 
+     	 * Writes the object to output.
+	 * @@param: out The output object to write to
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+		out.writeObject( myKey );		
+		out.writeObject( currentLocation );
+		out.writeObject( new Boolean( alive ) );
+		out.writeObject( new Boolean( underAttack ) );		
+		out.writeInt( currentHitPoints );
+		out.writeInt( maxHitPoints );
+		out.writeInt( myDamage );
+		out.writeObject( new Long( myAttackSpeed ) );
+		out.writeObject( myName );
+		out.writeInt( myExp );
+		out.writeInt( myGold );
+		out.writeObject( myDrop );				
+		out.writeObject( timeStamp );
+		out.writeObject( myCurrentTarget );
+	} 
+		
+	/**
+	 * Read the object in from input
+	 * @@param in The object to read from
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{
+		myKey = (MobKey)in.readObject();		
+		currentLocation = (XYloc)in.readObject();
+		alive = ((Boolean)in.readObject()).booleanValue();
+		underAttack = ((Boolean)in.readObject()).booleanValue();	
+		currentHitPoints = in.readInt();
+		maxHitPoints = in.readInt();
+		myDamage = in.readInt();
+		myAttackSpeed = ((Long)in.readObject()).longValue();
+		myName = (String)in.readObject();	
+		myGold = in.readInt();
+		myExp = in.readInt();
+		myDrop = (String)in.readObject();		
+		timeStamp = (Date)in.readObject();	
+		myCurrentTarget = (Eoid)in.readObject();	
+	}	
+ }
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.15 2004/12/10 02:29:16 rjw2183 Exp $
+d71 8
+a78 1
+	 * This 
+d82 1
+a82 2
+		{						
+						
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.14 2004/11/11 04:28:40 rjw2183 Exp rjw2183 $
+d70 2
+d88 1
+a88 1
+	/*
+d107 3
+d116 5
+a120 1
+			
+d134 3
+d143 1
+d146 1
+a146 2
+
+	 */
+d190 9
+a198 10
+       /**
+        * Registers an attacker with this mob.
+	* This places it in attack mode, stops the movement timer
+	* and starts the attack timer.
+	* @@param target The id of the player who is the target
+	* @@param location This
+	*/
+       public Date startAttack( Eoid target, XYloc location )
+       {
+		
+d206 1
+a206 1
+       }
+d222 6
+a227 6
+       /**
+        * Stops the mob from attacking	
+ 	* @@param target the id of the player to stop attacking
+	*/
+       public void stopAttack()
+       {       				
+d239 1
+a239 1
+       }
+d241 7
+a247 7
+      /*
+       * Returns the time the mob start combat
+       */
+      public Date getCombatTimeStamp()
+      	{	
+          return timeStamp;
+       }
+d249 6
+a254 6
+       /**
+        * Damages the mob.  Returns true idf the mob is dead.
+	* @@patram damage The amount of damage the mob takes.
+	*/
+       public void damageMob( int damage )
+       {       		
+d258 1
+a258 1
+       }
+d260 5
+a264 5
+       /**
+	* restarts the movement timer
+	*/
+       public void restartMovementTimer()
+       {
+d266 1
+a266 1
+       }
+d268 3
+a270 3
+       /** 
+	* Returns the current location of this mob
+	*/
+d362 1
+a362 1
+	 * Returns the current hea;th of the mob
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.13 2004/10/21 02:47:24 rjw2183 Exp rjw2183 $
+d27 1
+a27 1
+	private static int THIRTY_SECONDS = 30000;
+d74 1
+d77 5
+a81 1
+			myListener.moveMob( myMove );
+d156 1
+a156 1
+		movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THIRTY_SECONDS ) );
+d192 1
+a192 2
+		timeStamp = new Date();
+		System.out.println( "Combat started at: " + timeStamp );
+d226 1
+a226 1
+			movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THIRTY_SECONDS ) );
+d254 1
+a254 1
+       		movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THIRTY_SECONDS ) );
+d315 1
+a315 1
+			Mob otherMob =(Mob)other;
+d317 10
+a326 7
+			retVal = 
+			(
+			myKey.equals( otherMob.myKey ) &&
+			currentLocation.equals( otherMob.currentLocation ) &&
+			alive == otherMob.alive && 
+			underAttack == otherMob.underAttack
+			);
+a327 2
+			if( retVal == true && underAttack )
+				retVal = myCurrentTarget.equals( otherMob.myCurrentTarget );				
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.12 2004/09/24 03:43:35 rjw2183 Exp rjw2183 $
+d21 1
+d72 1
+a72 2
+		if( ( theTimer.isTriggered() && !theTimer.isStopped() ) &&
+		       myListener != null )					
+d74 2
+a75 2
+			int newDirection = new Random().nextInt( 4 );
+			MobMove myMove = myWorld.checkMobMove( myKey, newDirection, currentLocation );			
+a200 1
+		System.out.println( "movement timer stopped." );
+a204 1
+		System.err.println( "combat started at: " + theTimeStamp );
+d217 1
+a217 4
+		{
+			System.out.println( "Respawn timer called." );
+			respawnTimer.start( TWO_MINUTES +  movementPRNG.nextInt( TWO_MINUTES ) );	
+		}
+d298 1
+a298 1
+	{
+a311 8
+			if( !myKey.equals( otherMob.myKey ) )
+				System.err.println( "Keys are not equal." );
+			
+			if( !currentLocation.equals( otherMob.currentLocation ) )
+				System.err.println( "Locations are invalid" );
+			
+			if( !alive == otherMob.alive )
+				System.err.println( "alive not equal" );
+d411 13
+@
+
+
+1.12
+log
+@Add a function to determine if a player is in the house.
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.11 2004/09/16 02:39:28 rjw2183 Exp $
+d203 1
+d317 9
+d330 6
+a335 2
+			alive == otherMob.alive
+			);				
+d445 1
+d467 2
+a468 1
+		timeStamp = (Date)in.readObject();		
+@
+
+
+1.11
+log
+@Removed some old code that dealth with when there were temporary mobs.
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.10 2004/09/10 02:32:56 rjw2183 Exp rjw2183 $
+d199 1
+a199 1
+       public void startAttackSilent( Eoid target, XYloc location, Date theTimeStamp )
+d204 1
+a204 2
+		timeStamp = theTimeStamp;
+		currentLocation = location;
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.9 2004/08/16 18:30:07 rjw2183 Exp rjw2183 $
+d213 1
+a213 1
+       public void stopAttack( Eoid target )
+d353 1
+d355 1
+a355 1
+	 * Returns whether or not this mob has this target
+d357 3
+a359 3
+	public boolean hasTarget( Eoid id )
+	{		
+		return id.equals( myCurrentTarget );			
+a360 1
+	
+d368 1
+a368 1
+		stopAttack( myCurrentTarget );
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.8 2004/08/12 01:21:22 rjw2183 Exp rjw2183 $
+a13 2
+ import java.util.HashMap;
+ import java.util.Vector;
+d20 1
+d48 1
+a48 1
+	private HashMap otherTargets; // the whole temporar mob thing
+d153 1
+a153 1
+		otherTargets = new HashMap();		
+d169 2
+a170 2
+		respawnTimer = TimerThread.getDefault().createTimer( new RespawnTimerTask() );
+		otherTargets = new HashMap();	
+d180 1
+a180 1
+       public void startAttack( Eoid target, XYloc location )
+d182 1
+a182 1
+		System.out.println( "movement timer stopped." );
+d185 6
+a190 7
+		if( !underAttack )
+		{
+			underAttack = true;
+			myCurrentTarget = target;
+		}
+		else
+			otherTargets.put( target, location );				
+d199 1
+a199 1
+       public void startAttackSilent( Eoid target, XYloc location )
+d203 4
+a206 7
+		if( !underAttack )
+		{
+			underAttack = true;
+			myCurrentTarget = target;
+		}
+		else
+			otherTargets.put( target, location );
+d215 8
+a222 2
+		if( !target.equals( myCurrentTarget ) )
+			otherTargets.remove( target );
+d225 4
+a228 26
+			if( otherTargets.isEmpty() )
+			{
+				myCurrentTarget = null;
+				attackTimer.stop();
+				underAttack = false;				
+				if( !alive )
+				{
+					System.out.println( "Respawn timer called." );
+					respawnTimer.start( TWO_MINUTES +  movementPRNG.nextInt( TWO_MINUTES ) );	
+				}
+				else
+				{
+					// retore the monster to full health
+					currentHitPoints = maxHitPoints;
+					movementTimer.start( TWO_MINUTES +  movementPRNG.nextInt( THIRTY_SECONDS ) );
+				}
+			}
+			else
+			{
+				myCurrentTarget = (Eoid)(new Vector( otherTargets.keySet() )).elementAt( 0 );
+				underAttack = true;
+				alive = true;
+				XYloc loc = (XYloc)otherTargets.remove( myCurrentTarget );
+				myWorld.moveMob( myKey, loc );				
+			}
+		}
+d231 8
+d357 2
+a358 9
+	{
+		boolean retVal = false;
+		if( id.equals( myCurrentTarget ) )
+			retVal = true;
+		else
+		{
+			retVal = otherTargets.containsKey( id );
+		}
+		return retVal;
+a361 14
+	 * Returns the location this player is listed as fighting
+	 * @@param id The id of the player
+	 */
+	public XYloc getLoc( Eoid id )
+	{
+		XYloc retVal = null;
+		if( id.equals( myCurrentTarget ) )
+			retVal = currentLocation;
+		else
+			retVal = (XYloc)otherTargets.get( id );		
+		return retVal;
+	} 
+	
+	/**
+d430 2
+a431 2
+		out.writeObject( myDrop );		
+		out.writeObject( otherTargets );
+d452 2
+a453 2
+		myDrop = (String)in.readObject();
+		otherTargets = 	(HashMap)in.readObject();		
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.7 2004/07/22 19:33:30 rjw2183 Exp $
+d72 3
+a74 2
+		if( theTimer.isTriggered() )					
+		{			
+d103 2
+a104 1
+		if( theTimer.isTriggered() && myListener != null )					
+d183 1
+d203 1
+d230 2
+d233 1
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.6 2004/07/16 18:35:43 rjw2183 Exp rjw2183 $
+d26 3
+a28 1
+ 	private MobKey myKey; // the key of this mob	
+d150 1
+a150 1
+		movementTimer.start( 120000 +  movementPRNG.nextInt( 30000 ) );
+d226 1
+a226 1
+					respawnTimer.start( 20000 +  movementPRNG.nextInt( 30000 ) );	
+d231 1
+a231 1
+					movementTimer.start( 120000 +  movementPRNG.nextInt( 30000 ) );
+d261 1
+a261 1
+       		movementTimer.start( 120000 +  movementPRNG.nextInt( 30000 ) );
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.5 2004/06/23 19:57:33 rjw2183 Exp rjw2183 $
+d14 2
+d21 1
+d41 7
+a47 4
+	private MobListener myListener;
+	int myGold;
+	String myDrop;
+	int myExp;
+d150 1
+d153 3
+d166 2
+a167 1
+		respawnTimer = TimerThread.getDefault().createTimer( new RespawnTimerTask() );	
+d175 1
+d177 1
+a177 1
+       public void startAttack()
+d181 7
+a187 1
+		underAttack = true;		
+d190 7
+a196 1
+       public void startAttackSilent()
+d199 7
+a205 1
+		underAttack = true;
+d210 1
+d212 1
+a212 1
+       public void stopAttack()
+d214 2
+a215 4
+		attackTimer.stop();
+		underAttack = false;		
+		if( !alive )
+			respawnTimer.start( 20000 +  movementPRNG.nextInt( 30000 ) );	
+d218 22
+a239 3
+			// retore the monster to full health
+			currentHitPoints = maxHitPoints;
+			movementTimer.start( 120000 +  movementPRNG.nextInt( 30000 ) );
+d341 3
+d349 3
+d358 29
+d393 1
+a393 1
+		stopAttack();
+d434 3
+d456 1
+d477 2
+a478 1
+		myDrop = (String)in.readObject();	
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.4 2004/06/16 00:51:45 rjw2183 Exp $
+a18 1
+ import edu.rit.m2mi.Eoid; 
+a34 1
+	private Eoid myTarget; // the target this mob is currently fighting
+d94 2
+a95 5
+		if( theTimer.isTriggered() && myListener != null )
+		{
+			myListener.attackTarget( myTarget, myDamage, myName ); 				
+			attackTimer.start( myAttackSpeed );
+		}
+d113 1
+a113 3
+		if( theTimer.isTriggered() && myListener != null )
+		{
+			System.err.println( "Respawning " + myName );
+d115 1
+a115 1
+		}
+d131 1
+a131 2
+		underAttack = false;
+		myTarget = null;
+d149 1
+a149 2
+		myKey = new MobKey();
+		myTarget = new Eoid();
+d165 1
+a165 1
+       public void registerAttacker( Eoid target )
+a166 1
+       		myTarget = target;
+d168 1
+a168 1
+		attackTimer.start( myAttackSpeed );
+d172 1
+a172 1
+       public void registerAttackerSilent( Eoid target )
+a173 1
+       		myTarget = target;
+d179 1
+a179 2
+        * Stops the mob from attacking
+	* @@param isDead Indicates whether or not the mob is dead.
+d181 2
+a182 3
+       public void unregisterAttacker()
+       {
+       		myTarget = null;
+a253 1
+	
+a254 8
+	 * Gets the target of the mob, if any
+	 */
+	public Eoid getTarget()
+	{
+		return myTarget;
+	}
+	
+	/**
+d270 1
+a270 1
+		if( this.getClass().isInstance( other ) )
+d272 7
+a278 3
+			Mob otherMob = (Mob)other;
+			retVal = ( ( myKey.equals( otherMob.myKey ) ) &&
+				   ( alive == otherMob.alive ) );
+d310 1
+a310 1
+		unregisterAttacker();
+d361 1
+a361 2
+		out.writeObject( new Boolean( underAttack ) );
+		out.writeObject( myTarget );
+d382 1
+a382 2
+		underAttack = ((Boolean)in.readObject()).booleanValue();
+		myTarget = (Eoid)in.readObject();
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.3 2004/06/15 19:52:00 rjw2183 Exp rjw2183 $
+d41 3
+d67 1
+a67 1
+		{
+d111 1
+a111 1
+		{
+d117 6
+a122 2
+	{
+	
+d129 2
+a130 1
+	            int maxHP, int damage, long atkSpd, World theWorld, MobListener theListener )
+d140 3
+d151 1
+d162 1
+d164 2
+a165 1
+		attackTimer = TimerThread.getDefault().createTimer( new AttackTimerTask() );		
+d197 1
+a197 1
+		underAttack = false;
+d212 1
+a212 1
+       public boolean damageMob( int damage )
+d216 1
+a216 5
+		{
+			currentHitPoints = 0;			
+			unregisterAttacker();
+		}
+		return ( currentHitPoints == 0 );
+d224 1
+a224 1
+       		//movementTimer.start( 120000 +  movementPRNG.nextInt( 30000 ) );
+d305 1
+a305 1
+	public void setList( MobListener list )
+d308 1
+d316 36
+d353 17
+d385 4
+a388 1
+		out.writeObject( myName );		
+d407 4
+a410 1
+		myName = (String)in.readObject();		
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.2 2004/06/11 19:16:47 rjw2183 Exp rjw2183 $
+d164 2
+a165 1
+		attackTimer.start( myAttackSpeed );		
+d172 1
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.1 2004/06/10 17:00:08 rjw2183 Exp rjw2183 $
+d167 6
+d255 9
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d8 1
+a8 1
+ * @@version: $Id: Mob.java,v 1.8 2004/06/09 19:51:24 rjw2183 Exp rjw2183 $
+a19 1
+ import m2mimud.communications.Game;
+d32 1
+a32 2
+	private World myWorld; // a reference to the world this mob is in 
+	private Game mySession; // a reference to the session the mob is in
+d38 1
+a38 1
+	String  myName; // The name of the mob		
+d40 1
+d67 1
+a67 1
+			mySession.processMove( myMove );
+d92 6
+a97 1
+	{				
+d122 1
+a122 1
+	            int maxHP, int damage, long atkSpd, World theWorld, Game theSession )
+d125 1
+a125 1
+		mySession = theSession;
+d148 1
+a148 1
+		mySession = null;
+d164 1
+a164 1
+		attackTimer.start( myAttackSpeed );
+d275 2
+a276 2
+	 * This sets the world in which the mob physically resides
+	 * @@param: theWorld A refernce to the world in whcih the mob is located
+d278 1
+a278 1
+	public void setWorld( World theWorld )
+d280 1
+a280 1
+		myWorld = theWorld;
+d304 1
+a304 2
+		out.writeObject( myName );
+		out.writeObject( mySession );
+d323 1
+a323 2
+		myName = (String)in.readObject();
+		mySession = (Game)in.readObject();
+@

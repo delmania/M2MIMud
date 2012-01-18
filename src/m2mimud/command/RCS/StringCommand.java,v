@@ -1,0 +1,107 @@
+head	1.3;
+access;
+symbols;
+locks
+	rjw2183:1.3; strict;
+comment	@# @;
+
+
+1.3
+date	2005.01.06.13.46.11;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.15.19.52.11;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.12.47;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The StringCommand class is for commands which have an associated string
+ * value.  An example of such a command would be a say command, which
+ * contains the message the person is saying.
+ * 
+ * @@author: Robert Whitcomb
+ * @@version: $Id: StringCommand.java,v 1.2 2004/06/15 19:52:11 rjw2183 Exp $
+ */
+ 
+ package m2mimud.command;
+ 
+ public class StringCommand
+ extends Command
+ { 	
+	private String myStringData;
+	
+	/**
+	 * Constructor
+	 * @@param type The type of command
+	 * @@param value The String data associated with this command
+	 */
+	public StringCommand( int type, String value )
+	{
+		super( type );
+		myStringData = new String( value );
+	}
+	
+	/**
+	 * Returns the string data of this command
+	 */
+	public String getStringData()
+	{
+		return myStringData;
+	}
+}
+	
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: StringCommand.java,v 1.1 2004/06/10 17:12:47 rjw2183 Exp $
+d14 1
+a14 3
+ {
+ 
+	
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id$
+d15 1
+a15 8
+ 	/**
+	 * Since the string command is used to handle an attack command,
+	 * these symbols are here to indicate what kind of attack
+	 */
+	public static final int PUNCH = 0;
+	public static final int KICK = 1;
+	public static final int SLASH = 2;
+	public static final int THRUST = 3;
+@

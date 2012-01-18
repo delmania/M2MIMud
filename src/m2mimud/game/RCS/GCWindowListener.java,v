@@ -1,0 +1,61 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * This interface is for any class that needs information from the
+ * GameChooserWindow objectm specifically, which session, if any, was
+ * selected.
+ *
+ *
+ */
+ package m2mimud.game;
+ 
+ import m2mimud.communications.SessionAd;
+ 
+ public interface GCWindowListener
+ {
+ 	/**
+	 * Informs the listener that the session has been selected
+	 * @@param theAd The sessionad that contains information about the
+	 * the session that was selected.
+	 */
+	public void sessionSelected( SessionAd theAd );
+ }
+ 
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d14 6
+a19 1
+ 	public void sessionSelected( SessionAd theAd );
+@

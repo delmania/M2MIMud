@@ -1,0 +1,47 @@
+4: (walk|w) (north|south|east|west)
+0: (quit|q)
+5: (yell|y) .*
+3: (look|lo)
+2: (list|li)
+6: game .*
+1: create (male|female) \w+ \w+
+7: find
+10: who
+11: (say|s) .*
+12: dig pond
+13: createhouse .*
+15: time
+16: goto (\d)+ (\d)+
+17: list wares
+18: (buy|sell) \w+ \d+
+19: (inventory|inv)
+31: send \w+ .*
+30: (add|lookup) \w+
+20: check friends
+26: llist
+27: lsend \d+ .*
+28: (ladd|lcheck) \d+
+24: equip \w+
+25: (punch|kick|slash|thrust|pu|ki|sl|th) .*
+33: (punch|kick|slash|thrust|pu|ki|sl|th)
+34: challenge \w+
+35: accept|decline
+37: map
+38: load (player|map|world) \w+
+39: save (world|map) \w+
+40: remove (pond|house \d+)
+41: save
+42: use \w+
+43: set partition \d+
+23: enter house \d+
+45: cast \w+ \w+
+46: cast \w+
+47: leave house
+48: clear
+49: partition
+9: leave
+50: do report
+51: surrender
+52: (move|kill|respawn|find) \d+ \d+
+53: print mobs
+54: stats

@@ -1,0 +1,380 @@
+head	1.5;
+access;
+symbols;
+locks
+	rjw2183:1.5; strict;
+comment	@# @;
+
+
+1.5
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.12.10.02.29.16;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.09.22.03.27.36;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.23.19.57.33;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.08;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The MobData file contains all the information about the various types of
+ * mobs in the game
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: MobData.java,v 1.4 2004/12/10 02:29:16 rjw2183 Exp $
+ */
+ 
+ 
+ package m2mimud.state;
+ 
+ import java.io.*;
+ import java.util.Vector;
+ import java.util.HashMap;
+ import java.util.Iterator;
+
+ public class MobData
+ implements Externalizable
+ {
+ 	private Vector  mobIds; // stores the id of the mobs
+	private HashMap mobNames; // stores the names of the mobs
+	private HashMap mobHitPoints; // stores the hit points of the mobs
+	private HashMap mobBaseDamage; // stores the base damage value 
+	private HashMap mobAttackSpeed; // store te attack speed
+	private HashMap mobGoldAmount; // stores the amount of gold this mob is worth
+	private HashMap mobDrops; // stores the item of what this mob is worth
+	private HashMap mobExp; // stores the amount of exp this mod is worth
+	
+        /**
+ 	 * Constructor
+	 */
+	public MobData()
+	{
+		mobIds = new Vector();
+		mobNames = new HashMap();
+		mobHitPoints = new HashMap();
+		mobBaseDamage = new HashMap();
+		mobAttackSpeed = new HashMap();
+		mobGoldAmount = new HashMap();
+		mobDrops = new HashMap();
+		mobExp  = new HashMap();
+	}
+	
+	/**
+	 * Returns back the number of mobs
+	 */
+	public int size()
+	{
+		return mobIds.size();
+	}
+	
+	/**
+	 * Adds a new mob to the listing
+	 * @@param name The name of the mob
+	 * @@param hitPoints the number of hitpoints the mob has
+	 * @@param damage The damage the mob does
+	 * @@param attackSpd the swing speed of the mob
+	 */
+	public void addNewMob( int id, String name, int hitPoints, int damage, 
+	                       long attackSpd, int gold, String drops, int expVal )
+	throws Exception
+	{	
+		Integer myId = new Integer( id );
+		if( mobIds.indexOf( myId ) != -1 )
+			throw new Exception( "Mob already exists." );
+		else
+		{
+			mobIds.add( myId );
+			mobNames.put( myId, name );
+			mobHitPoints.put( myId, new Integer( hitPoints ) );
+			mobBaseDamage.put( myId, new Integer( damage ) );
+			mobAttackSpeed.put( myId, new Long( attackSpd ) );
+			mobGoldAmount.put( myId, new Integer( gold ) );
+			mobDrops.put( myId, drops );
+			mobExp.put( myId, new Integer( expVal ) );
+		}
+	}
+	
+	/**
+	 * Removes the mob from the list
+	 * @@param name The name of th emob to remove
+	 */
+	public void removeMob( int id )
+	{
+		Integer myId = new Integer( id );
+		mobIds.remove( myId );
+		mobNames.remove( myId );
+		mobHitPoints.remove( myId );
+		mobBaseDamage.remove( myId );
+		mobAttackSpeed.remove( myId );
+		mobGoldAmount.remove( myId );
+		mobDrops.remove( myId );
+		mobExp.remove( myId );
+	}
+	 
+	/**
+	 * Returns an iterator which can be used to access all the mobs
+	 */ 
+	public Iterator getMobs()	
+	{
+	 	return mobIds.iterator();
+	}
+	
+	/**
+	 * Gets the name of the mob
+	 * @@param id The id of the mob to lookup
+	 */
+	public String lookupName( int id )
+	throws Exception
+	{
+		Integer myId = checkKey( id );
+		return (String)mobNames.get( myId );
+	}
+	 
+	/** 
+	 * Gets the hit points of the mob
+	 * @@param name The mob to lookup
+	 */
+	public int lookupHP( int id )
+	throws Exception
+	{ 
+		Integer myId = checkKey( id );		  
+		return ((Integer)mobHitPoints.get( myId )).intValue();
+	}
+	
+ 	/**
+	 * Gets the damage of the mobs
+	 * @@param name the name of the mob to lookup
+	 */
+	public int lookupDamage( int id )
+	throws Exception
+	{
+		Integer myId = checkKey( id );
+		return ((Integer)mobBaseDamage.get( myId )).intValue();
+	}
+	
+	/**
+	 * Gets the attack speed of the mob
+	 * @@param name The name of the mob
+	 */
+	public long lookupAtkSpd( int id )
+	throws Exception
+	{		
+		Integer myId = checkKey( id );	
+		return ((Long)mobAttackSpeed.get( myId )).longValue();
+	}
+	
+	/** 
+	 * Returns how much gold this mob drops upon death
+	 * @@para, id The integer id of the mob
+	 */
+	public int lookupGoldAmount( int id )
+	throws Exception
+	{
+		Integer myId = checkKey( id );
+		return ((Integer)mobGoldAmount.get( myId )).intValue();
+	}
+	
+	/**
+	 * Returns the item drops
+	 * @@param id The integer id of the mob
+	 */
+	public String lookupDrops( int id )
+	throws Exception
+	{
+		Integer myId = checkKey( id );
+		return (String)mobDrops.get( myId );
+	}
+	
+	/**
+	 * Returns the number of exp points this mob is worth
+	 * @@param id The integer id of the mob
+	 */
+	public int lookupExpPoints( int id )
+	throws Exception
+	{
+		Integer myId = checkKey( id );
+		return ((Integer)mobExp.get( myId )).intValue();
+	}
+		
+	/**
+	 * Lists all the mobs in the data table.
+	 */
+	public String toString()
+	{
+		StringBuffer retVal = new StringBuffer();
+		if( mobIds.size() == 0 )
+			retVal.append( "No Mobs.\n" );
+		else
+		{
+			Iterator names = mobIds.iterator();
+			while( names.hasNext() )
+			{
+				Integer mobN = (Integer)names.next();
+				String name = (String)mobNames.get( mobN );
+				int hp = ((Integer)mobHitPoints.get( mobN )).intValue();
+				int damage = ((Integer)mobBaseDamage.get( mobN )).intValue();
+				long attackSpd = ((Long)mobAttackSpeed.get( mobN )).longValue();
+				int gold = ((Integer)mobGoldAmount.get( mobN )).intValue();
+				int exp = ((Integer)mobExp.get( mobN )).intValue();
+				String itemCode = (String)mobDrops.get( mobN );
+				
+				retVal.append( mobN + ": " + name + ", " + hp + " hitpoints, " + 
+				damage + " damage, " + attackSpd + " milliseconds/swing, " + gold + 
+				"gold pieces, " + exp + " exp points.\n" );
+				if( itemCode != null )
+					retVal.append( "**Drops: " + itemCode + "\n" );
+			}
+		}
+		return retVal.toString();
+	}
+	
+	/** 
+	 * A private function which takes in an int basic
+	 * type and converts it to an Integer object.  It also checks to 
+	 * make sure that the given key exists in the MobData obect, and will
+	 * throw an exception if not
+	 * @@param theKey The key to check and convert
+	 */
+	private Integer checkKey( int theKey )
+	throws Exception
+	{
+		Integer retVal = new Integer( theKey );
+		if( mobIds.indexOf( retVal ) == -1 )
+			throw new Exception( "Mob does not exist." );
+		return retVal;
+	}
+	
+	/**
+	 * Writes the object to output 
+	 * @@param out The output object to write to
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+ 		out.writeObject( mobIds );
+		out.writeObject( mobNames );
+		out.writeObject( mobHitPoints );
+		out.writeObject( mobBaseDamage );
+		out.writeObject( mobAttackSpeed );
+		out.writeObject( mobGoldAmount );
+		out.writeObject( mobDrops );
+		out.writeObject( mobExp );
+	}
+	
+	/**
+	 * Reads the object in from input
+	 * @@param in The ibject to read in from
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{
+		mobIds = (Vector)in.readObject();
+		mobNames = (HashMap)in.readObject();
+		mobHitPoints = (HashMap)in.readObject();
+		mobBaseDamage = (HashMap)in.readObject();
+		mobAttackSpeed = (HashMap)in.readObject();
+		mobGoldAmount = (HashMap)in.readObject();
+		mobDrops = (HashMap)in.readObject();
+		mobExp = (HashMap)in.readObject();
+	}
+}
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: MobData.java,v 1.3 2004/09/22 03:27:36 rjw2183 Exp $
+d59 2
+a60 1
+	public void addNewMob( int id, String name, int hitPoints, int damage, long attackSpd, int gold, String drops, int expVal )
+d96 3
+a98 3
+	 /**
+	  * Returns an iterator which can be used to access all the mobs
+	  */
+@
+
+
+1.3
+log
+@Changed the functions that get a weapon's damage and delay to
+include weapons.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: MobData.java,v 1.2 2004/06/23 19:57:33 rjw2183 Exp $
+d45 8
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: MobData.java,v 1.1 2004/06/10 17:00:08 rjw2183 Exp $
+d192 1
+d197 2
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: MobData.java,v 1.2 2004/06/09 18:35:58 rjw2183 Exp rjw2183 $
+d25 3
+d39 3
+d51 1
+a51 1
+	public void addNewMob( int id, String name, int hitPoints, int damage, long attackSpd )
+d64 3
+d82 3
+d139 11
+d151 22
+d175 1
+a175 1
+	public String  toString()
+d190 3
+d194 2
+a195 1
+				damage + " damage, " + attackSpd + " milliseconds/swing.\n" );
+d229 3
+d246 3
+@

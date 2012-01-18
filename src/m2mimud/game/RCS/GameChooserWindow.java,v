@@ -1,0 +1,164 @@
+head	1.3;
+access;
+symbols;
+locks
+	rjw2183:1.3; strict;
+comment	@# @;
+
+
+1.3
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.08.11.20.06.44;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The game chooser window is the window which displays the available session.
+ *
+ * @@author: Robert Whitcomb
+ * @@versions: $Id: GameChooserWindow.java,v 1.2 2004/08/11 20:06:44 rjw2183 Exp $
+ *
+ *
+ */
+ 
+ package m2mimud.game;
+ 
+ import javax.swing.*;
+ import java.awt.*;
+ import java.awt.event.*;
+ import m2mimud.communications.Game;
+ import m2mimud.communications.SessionAd;
+ 
+ public class GameChooserWindow
+ extends JFrame
+ implements GameChooserListener
+ {
+ 	private JScrollPane scrollPane;
+	private JButton joinButton;
+	private JButton cancelButton;
+	private JList sessionList;
+	private GameChooser myGC;
+	private GCWindowListener myListener;
+	private SessionAd myAd;
+	
+	/**
+	 * Creates a new GameChooser window
+	 * @@param gc The GameChooser object that uses this window to display its data
+	 * @@param listener  A listener that waits for the window to inform what session was selected
+	 */
+	 public GameChooserWindow( GameChooser gc, GCWindowListener listener )
+	 {
+	 	super( "Select a session to join." );
+		myGC = gc;
+		myListener = listener;
+		sessionList = new JList();
+		myGC.setJList( sessionList );
+		sessionList.setSelectionMode( ListSelectionModel.SINGLE_SELECTION );
+		JPanel mainPanel = new JPanel();
+		mainPanel.setBorder( BorderFactory.createEmptyBorder
+		 (10, 10, 10, 10 ) );
+		mainPanel.setLayout( new BoxLayout( mainPanel, BoxLayout.Y_AXIS ) );
+		scrollPane = new JScrollPane( sessionList, 
+					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+					JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
+		scrollPane.setAlignmentX( 0.0f );
+		mainPanel.add( scrollPane );
+		mainPanel.add( Box.createVerticalStrut( 10 ) );
+		
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setLayout( new BoxLayout( buttonPanel, BoxLayout.X_AXIS ) );
+		buttonPanel.setAlignmentX( 0.0f );
+		joinButton = new JButton( "Join" );
+		joinButton.addActionListener(
+			new ActionListener()
+			{
+				public void actionPerformed( ActionEvent e )
+				{	
+					setVisible( false );
+					myListener.sessionSelected( myAd );
+					myGC.purge();
+					dispose();				
+				}
+			}
+		);
+		cancelButton = new JButton( "Cancel" );
+		cancelButton.addActionListener(
+			new ActionListener()
+			{
+				public void actionPerformed( ActionEvent e )
+				{
+					setVisible( false );
+					myListener.sessionSelected( null );
+					myGC.purge();
+					dispose();
+				}
+			}
+		);
+				
+			
+		buttonPanel.add( joinButton );
+		buttonPanel.add( cancelButton );
+		
+		mainPanel.add( buttonPanel );
+		
+		getContentPane().add( mainPanel );
+		setSize( 400, 400 );
+		myGC.setListener( this );
+	 }
+	 
+	 /**
+	  * When a session has been selected in the GameChooser, this is called
+	  * so that the window can report back the correct session
+	  * @@param theAd The sessionad that was selected
+	  */
+	 public void gameSelected( SessionAd theAd )
+	 {
+	 	myAd = theAd;
+	 }
+ }
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@versions: $Id: GameChooserWindow.java,v 1.1 2004/06/10 18:22:40 rjw2183 Exp $
+d32 2
+d95 5
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+a5 1
+ * @@versions: $Id: GameChooserWindow.java,v 1.7 2004/04/06 15:31:43 rjw2183 Exp rjw2183 $
+d63 1
+d76 1
+@

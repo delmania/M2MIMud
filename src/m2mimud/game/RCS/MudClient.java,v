@@ -1,0 +1,813 @@
+head	1.12;
+access;
+symbols;
+locks
+	rjw2183:1.12; strict;
+comment	@# @;
+
+
+1.12
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.10.21.02.47.38;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.07.16.18.35.57;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.07.06.19.57.41;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.06.23.19.57.24;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.06.16.19.58.35;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.06.16.00.51.32;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.15.19.51.41;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.11.19.16.08;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.11.17.28.38;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.11.17.22.37;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The MudClient class is the GUI window for the game.
+ * 
+ * @@author: Robert Whitcomb
+ * @@contributors: Jangho Hwang
+ * @@version: $Id: MudClient.java,v 1.11 2004/10/21 02:47:38 rjw2183 Exp $
+ *
+ */
+package m2mimud.game;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.text.*;
+import javax.swing.text.rtf.RTFEditorKit;
+
+import m2mimud.command.CommandExec;
+import m2mimud.state.PlayerCharacter;
+public class MudClient
+extends JFrame
+{
+	private JScrollPane chatPane, inputPane, combatPane;
+	private JTextArea inputArea;	
+	private CommandExec commExec;
+	private MudDisplayWindow myDisplayWindow, combatWindow;
+	private Font FONT_10; 
+	JLabel statusLabel, nameLabel, classLabel;
+	JLabel levelLabel, goldLabel, idLabel, equilLabel, balanceLabel;
+	JLabel hpLabel, stateNameLabel, targetLabel;
+	
+	/** 
+	 * Creates a new client.
+	 *
+	 * @@param title The title of the window
+	 * @@param cE The CommandExec object associated with this client that process
+	 *           commands from the user.
+	 *          
+	 */
+	public MudClient( String title, CommandExec cE )
+	{
+		// For the most part, this window is based on the jMSN
+		// chat window jMSN is a java based MSN Messenger client developed
+		// by Jango Hwang, and availabe at http://jmsn.sourceforge.net/
+		super( title );
+		commExec = cE;
+		FONT_10 = new Font( "Dialog", Font.PLAIN, 12 );
+		
+		setSize( 500, 700 );
+		JPanel mainPanel = (JPanel)getContentPane();
+		
+		myDisplayWindow = new MudDisplayWindow();
+		myDisplayWindow.setFont( FONT_10 );
+		
+		combatWindow = new MudDisplayWindow();
+		combatWindow.setFont( FONT_10 );
+		
+		JPanel propertyPane = new JPanel();
+		propertyPane.setLayout( new BorderLayout() );
+		
+		JPanel propertyPanel = new JPanel();
+		propertyPanel.setPreferredSize( new Dimension( Short.MAX_VALUE, 32 ) );
+		propertyPanel.setLayout( new FlowLayout( FlowLayout.LEFT, 5, 2 ) );
+	 	propertyPane.add( propertyPanel,"West" ); 
+		
+		inputArea = new JTextArea();
+		inputArea.setFont( FONT_10 );
+		inputArea.setLineWrap( true );
+		
+		equilLabel = new JLabel( "Mental Equilibrium" );		
+		equilLabel.setFont( FONT_10 );
+		equilLabel.setPreferredSize( new Dimension( 150, 24 ) );
+		
+		balanceLabel = new JLabel( "Physical Balance" );
+		balanceLabel.setFont( FONT_10 );
+		balanceLabel.setPreferredSize( new Dimension( 150, 24 ) );
+		
+		JPanel statusPanel = new JPanel( new FlowLayout() );
+		statusPanel.add( equilLabel );
+		statusPanel.add( balanceLabel );
+		
+		chatPane = new JScrollPane( myDisplayWindow );
+		myDisplayWindow.setScrollPane( chatPane );		
+		
+		
+		combatPane = new JScrollPane( combatWindow );
+		combatWindow.setScrollPane( combatPane );
+		combatPane.setPreferredSize( new Dimension( 100, 50 ) );
+		inputPane = new JScrollPane( inputArea );
+		inputPane.setPreferredSize( new Dimension( 100, 50 ) );
+		
+		JPanel outputPanel = new JPanel( new BorderLayout() );
+		outputPanel.add( combatPane, "North" );
+		outputPanel.add( new JLabel( "Please enter in a command:" ), "Center" );
+		outputPanel.add( inputPane, "South" );
+		
+	 
+		JPanel bottomPanel = new JPanel( new BorderLayout() );
+		bottomPanel.add( propertyPane, "North" );
+		bottomPanel.add( outputPanel, "Center" );
+		bottomPanel.add( statusPanel, "South" );
+		
+		JPanel topPanel = new JPanel( new FlowLayout( FlowLayout.LEFT, 4, 4 ) );
+		topPanel.setPreferredSize( new Dimension( 100, 45 ) );
+		topPanel.setBorder( BorderFactory.createEtchedBorder() );
+		nameLabel = new JLabel( "Name: " );
+		levelLabel = new JLabel( "Level: " );
+		classLabel = new JLabel( "Class: " );
+		goldLabel = new JLabel( "Gold: " );
+		idLabel = new JLabel( "Id: " );
+		hpLabel = new JLabel( "Hp: / " );
+		stateNameLabel = new JLabel();
+		targetLabel = new JLabel( "Target:  " );
+		topPanel.add( nameLabel );
+		topPanel.add( levelLabel );
+		topPanel.add( classLabel );
+		topPanel.add( goldLabel );
+		topPanel.add( hpLabel );
+		topPanel.add( idLabel );
+		topPanel.add( stateNameLabel );
+		topPanel.add( targetLabel );
+		
+		
+		mainPanel.add( topPanel, "North" );
+		mainPanel.add( chatPane, "Center" );
+		mainPanel.add( bottomPanel, "South" );
+
+		
+		InputMap im = inputArea.getInputMap();
+		ActionMap am = inputArea.getActionMap();
+		im.put( KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "execute" );
+		am.put( "execute", 
+			new AbstractAction() 
+			{
+				public void actionPerformed( ActionEvent e )
+				{
+					commExec.executeCommand( inputArea.getText().trim() );
+					inputArea.setText( "" );
+				}
+			}
+		);
+		
+		addWindowListener( new WindowAdapter()
+			{
+				public void windowClosing( WindowEvent e )
+				{
+					dispose();
+				}
+				
+				public void windowClosed( WindowEvent e )
+				{
+					System.exit( 0 );
+				}
+			}
+		);		
+		setVisible( true );		
+		inputArea.requestFocusInWindow();		
+	} 
+		
+	/**
+	 * Add new text to the window using the given color	 
+	 * @@param line The text to add.
+	 * @@param theColor The color of the text to add
+	 */
+	public void displayOutput( String line, Color theColor, boolean error )
+	throws Exception
+	{
+		myDisplayWindow.addText( line, theColor, error );	
+		repaint();	
+	}
+	
+	/** 
+	 * Prints a combat message to the combatWindw window
+	 * @@param line The message to print
+	 * @@param theColor The color of the message to print
+	 * @@param player A boolean value to indicate if this message was generated
+	 * by the local player
+	 */
+	public void printCombatMessage( String line, Color theColor, boolean player )
+	throws Exception
+	{
+		combatWindow.addText( line, theColor, player );
+		repaint();
+	}
+	
+	/**
+	 * Clears the combat window
+	 */
+	public void clearCombatWindow()
+	{
+		combatWindow.setText( "" );
+	}	
+	
+	/**
+	 * Clears the primary display window
+	 */
+	public void clearOutput()
+	{
+		myDisplayWindow.setText( "" );
+	}
+	
+	/**
+	 * Sets the state name label
+	 * @@param name The name of the state
+	 */
+	public void setStateName( String name )
+	{
+		stateNameLabel.setText( name );
+		repaint();
+	}
+	
+	/**
+	 * Sets this as the active player
+	 * @@param player The player to display
+	 */
+	public void setPlayer( PlayerCharacter thePlayer )
+	{
+		String[] classes = { "Fighter",  "Mage" };	
+		nameLabel.setText( "Name: " + thePlayer.getName() );				
+		levelLabel.setText( "Level: " + thePlayer.getLevel() );
+		classLabel.setText( "Class: " + classes[thePlayer.getPlayerClass()] );
+		goldLabel.setText( "Gold: " + thePlayer.getCurrentGold() );
+		idLabel.setText( "Id: " + thePlayer.getId().toString() );
+		hpLabel.setText( "HP: " + thePlayer.getHP() + "/" + thePlayer.getMaxHP() );
+	}
+	
+	/**
+	 * Sets the target label
+	 */
+	public void setTarget( String targetName )
+	{
+		targetLabel.setText( "Target: " + targetName );
+	}
+	
+	/**
+	 * Sets the player's status
+	 * @@param equilibrium True if the player has mental equilbrium
+	 * @@param balance True if the player has physical balance
+	 */
+	public void setPlayerStatus( boolean equilibrium, boolean balance )
+	{
+		if( equilibrium )
+			equilLabel.setText( "Mental Equilbrium" );
+		else
+			equilLabel.setText( "No Mental Equilbrium" );
+		
+		if( balance )
+			balanceLabel.setText( "Physical Balance" );
+		else
+			balanceLabel.setText( "No Physical Balance" );
+	}
+	
+	/**
+	 * This is a private class that define a window that displays text.  It allows
+	 * the text to change colors and style
+	 */
+	private class MudDisplayWindow
+ 	extends JTextPane
+	{
+ 		private SimpleAttributeSet style;
+		private JTextArea myTextArea;
+		private JScrollPane myScrollPane;
+		
+		/**
+		 * Constructor
+		 */	
+		public MudDisplayWindow()
+		{
+			style = new SimpleAttributeSet();
+			StyleConstants.setForeground( style, Color.black );		
+			StyleConstants.setFontSize( style, 12 );
+			this.setContentType( "text/rtf" );
+			this.setEditorKit( new RTFEditorKit() );
+			this.setEditable( false );
+			setBorder( BorderFactory.createEmptyBorder( 5, 5, 5, 5 ) );	 		
+		}
+		
+		/**
+		 * Sets the scroll pane so the addText function can force it
+		 * to autoscroll to the bottom when adding new text.
+		 * @@param theScrollPane The scroll pane associated with the 
+		 * window that the addText function adds text to
+		 */
+		public void setScrollPane( JScrollPane theScrollPane )
+		{
+			myScrollPane  = theScrollPane;
+		}
+		
+		/**
+		 * Adds a string of text to the output using the given color.
+		 * @@param theMessage The message to display
+		 * @@param theColor The color of the message to display.
+		 */
+		public void addText( String theMessage, Color theColor, boolean error )
+		throws Exception
+		{
+			// Save the current style and color values
+			Color a3 = StyleConstants.getForeground( style );
+			String a2 = StyleConstants.getFontFamily( style );
+			
+			// Set the style and color values
+			StyleConstants.setFontFamily( style, a2 );
+			StyleConstants.setForeground( style, theColor );
+			
+			// This finds the end of the text
+			String s = getDocument().getText( 0, getDocument().getLength() );
+			int d1 = s.length();
+			
+			// If this is an error message, bold it
+			if( error )
+				StyleConstants.setBold( style, true );
+			
+			// Insert the new text at the end of the current text
+			getDocument().insertString( this.getDocument().getLength(),
+					    theMessage + "\n", style );
+			getDocument().insertString( this.getDocument().getLength(),
+					     "", style );
+					     
+			// Restore the old style and color values, turn off bold text					   
+		        StyleConstants.setFontFamily( style, a2);
+			StyleConstants.setForeground( style, a3 );
+			if( error )
+				StyleConstants.setBold( style, false );
+			
+			// Auto scroll the window to the bottom
+			JScrollBar sb =  myScrollPane.getVerticalScrollBar();
+			sb.setValue( sb.getMaximum() );
+			repaint();
+		}
+	}	 
+}
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d5 2
+a6 1
+ * @@version: $Id: MudClient.java,v 1.10 2004/07/16 18:35:57 rjw2183 Exp $
+d35 3
+d41 3
+d167 2
+a168 2
+			myDisplayWindow.addText( line, theColor, error );	
+			repaint();	
+d171 7
+d185 3
+d193 3
+d210 1
+d226 3
+d233 1
+d252 4
+d277 6
+d296 1
+d299 2
+d303 2
+d307 2
+d311 2
+d317 2
+d324 1
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.9 2004/07/06 19:57:41 rjw2183 Exp rjw2183 $
+d28 1
+a28 1
+	JLabel hpLabel, stateNameLabel;
+d105 1
+d113 1
+d205 4
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.8 2004/06/23 19:57:24 rjw2183 Exp $
+d28 1
+a28 1
+	JLabel hpLabel;
+d104 1
+d111 1
+d180 9
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.7 2004/06/16 19:58:35 rjw2183 Exp $
+d171 6
+a176 1
+
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.6 2004/06/16 00:51:32 rjw2183 Exp rjw2183 $
+d28 1
+d103 1
+d108 1
+d184 1
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.5 2004/06/15 19:51:41 rjw2183 Exp rjw2183 $
+d55 1
+a55 3
+	 
+	//propertyPanel.add( new JLabel( "Please enter in a command: " ) );
+		propertyPane.add( propertyPanel,"West" ); 
+d89 1
+a89 1
+	JPanel bottomPanel = new JPanel( new BorderLayout() );
+d164 5
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.4 2004/06/11 19:16:08 rjw2183 Exp rjw2183 $
+d21 1
+a21 1
+	private JScrollPane chatPane, inputPane;
+d24 1
+a24 1
+	private MudDisplayWindow myDisplayWindow;
+d40 1
+a40 1
+		setSize( 500, 450 );
+d42 1
+d46 3
+d55 2
+a56 2
+		propertyPanel.add( new JLabel( "Please enter in a command: " ) );
+		
+d76 6
+d85 7
+a91 1
+		JPanel bottomPanel = new JPanel( new BorderLayout() );
+d93 1
+a93 1
+		bottomPanel.add( inputPane, "Center" );
+d110 1
+d159 7
+d203 1
+d219 5
+d249 1
+a249 1
+			JScrollBar sb =  chatPane.getVerticalScrollBar();
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.3 2004/06/11 17:28:38 rjw2183 Exp rjw2183 $
+d26 2
+a27 1
+	JLabel statusLabel, nameLabel, classLabel, levelLabel, goldLabel, idLabel;
+d59 3
+a61 3
+		statusLabel = new JLabel( "E B" );
+		statusLabel.setFont( FONT_10 );
+		statusLabel.setPreferredSize( new Dimension( 100, 24 ) );
+d63 8
+d78 1
+a78 1
+		bottomPanel.add( statusLabel, "South" );
+d129 1
+a129 1
+	
+d156 18
+d191 1
+a191 2
+			setBorder( BorderFactory.createEmptyBorder( 5, 5, 5, 5 ) );	
+			setBackground( Color.black );	
+d217 5
+a221 1
+				StyleConstants.setBold( style, false );			   
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.2 2004/06/11 17:22:37 rjw2183 Exp rjw2183 $
+d26 1
+a26 1
+	JLabel statusLabel, nameLabel;
+d39 1
+a39 1
+		setSize( 350, 350 );
+d72 1
+a72 1
+		topPanel.setPreferredSize( new Dimension( 100, 38 ) );
+d75 9
+d122 1
+a122 2
+	 * Add new text to the window
+	 *
+d124 1
+d126 1
+a126 1
+	public void displayOutput( String line, Color theColor )
+d129 2
+a130 1
+			myDisplayWindow.addText( line, theColor );		
+d139 6
+a144 1
+		nameLabel.setText( "Name " + thePlayer.getName() );				
+d152 33
+a184 22
+	
+	public MudDisplayWindow()
+	{
+		style = new SimpleAttributeSet();
+		StyleConstants.setForeground( style, Color.black );		
+		StyleConstants.setFontSize( style, 12 );
+		this.setContentType( "text/rtf" );
+		this.setEditorKit( new RTFEditorKit() );
+		this.setEditable( false );
+		setBorder( BorderFactory.createEmptyBorder( 5, 5, 5, 5 ) );		
+	}
+	
+	public void addText( String theMessage, Color theColor )
+	throws Exception
+	{
+		Color a3 = StyleConstants.getForeground( style );
+		String a2 = StyleConstants.getFontFamily( style );
+		StyleConstants.setFontFamily( style, a2 );
+		StyleConstants.setForeground( style, theColor );
+		String s = getDocument().getText( 0, getDocument().getLength() );
+		int d1 = s.length();
+		getDocument().insertString( this.getDocument().getLength(),
+d186 1
+a186 1
+		getDocument().insertString( this.getDocument().getLength(),
+d188 6
+a193 4
+	        StyleConstants.setFontFamily( style, a2);
+		StyleConstants.setForeground( style, a3 );			   
+	}
+} 
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.1 2004/06/10 18:22:40 rjw2183 Exp rjw2183 $
+d13 2
+a130 1
+	 
+d132 34
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: MudClient.java,v 1.3 2004/06/08 15:12:35 rjw2183 Exp rjw2183 $
+d13 1
+d19 2
+a20 3
+	private JScrollPane scrollPane;
+	private JTextArea outputWindow;
+	private JTextField inputWindow;	
+d22 3
+a24 1
+	JLabel nameLabel, classLabel, levelLabel, strLabel, dexLabel, conLabel, intLabel, goldLabel;
+d33 1
+a33 1
+		super( title ); 
+d35 1
+d37 4
+a40 4
+		JPanel mainPanel = new JPanel();
+		mainPanel.setBorder( BorderFactory.createEmptyBorder
+			( 10, 10, 10, 10 ) );
+		mainPanel.setLayout( new BoxLayout( mainPanel, BoxLayout.Y_AXIS ) );
+d42 2
+a43 4
+		outputWindow = new JTextArea( 12, 40 );
+		outputWindow.setEditable( false );
+		outputWindow.setLineWrap( true );
+		outputWindow.setWrapStyleWord( true );
+d45 4
+a48 6
+		scrollPane = new JScrollPane( outputWindow, 
+			JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, 
+			JScrollPane.HORIZONTAL_SCROLLBAR_NEVER );
+		scrollPane.setAlignmentX( 0.0f );
+		mainPanel.add( scrollPane );
+		mainPanel.add( Box.createVerticalStrut( 10 ) );
+d50 34
+a83 8
+		JPanel commandPanel = new JPanel();
+		commandPanel.setLayout( new BoxLayout( commandPanel, 
+			BoxLayout.Y_AXIS ));
+		commandPanel.setBorder( BorderFactory.createEmptyBorder
+			( 10, 10, 10, 10 ) );
+		commandPanel.setAlignmentX( 0.0f );
+		inputWindow = new JTextField( 40 );
+		inputWindow.addActionListener( new ActionListener()
+d87 2
+a88 2
+					commExec.executeCommand( inputWindow.getText() );
+					inputWindow.setText( "" );
+a91 4
+		commandPanel.add( new JLabel( "Please enter in a command:" ) );
+		commandPanel.add( inputWindow );				
+		commandPanel.add( Box.createHorizontalGlue() );
+		mainPanel.add( commandPanel );
+a92 35
+		JPanel charPanel = new JPanel();
+		charPanel.setLayout( new BoxLayout( charPanel, BoxLayout.Y_AXIS ) );
+		charPanel.setAlignmentX( 0.0f );
+		charPanel.setAlignmentY( 0.0f );
+		
+		nameLabel =  new JLabel( "Name:  ", JLabel.LEFT );		
+		classLabel = new JLabel( "Class: ", JLabel.LEFT );
+		levelLabel = new JLabel( "Level: ", JLabel.LEFT );
+		charPanel.add( nameLabel );
+		charPanel.add( classLabel );
+		charPanel.add( levelLabel ); 
+		
+		JPanel statPanel = new JPanel();
+		statPanel.setLayout( new GridLayout( 2, 2 ) );
+		strLabel = new JLabel( "Str: -- " );
+		conLabel = new JLabel( "Con: -- " );
+		dexLabel = new JLabel( "Dex: -- " );
+		intLabel = new JLabel( "Int: -- " );
+		statPanel.add( strLabel );
+		statPanel.add( conLabel );
+		statPanel.add( dexLabel );
+		statPanel.add( intLabel );
+		
+		charPanel.add( statPanel );
+		
+		goldLabel = new JLabel( "Gold: ----- " );
+		charPanel.add( goldLabel );
+		charPanel.add( Box.createVerticalStrut( 150 ) );
+		charPanel.add( Box.createHorizontalGlue() );
+		charPanel.add( Box.createVerticalGlue() );
+		
+		getContentPane().setLayout( new BoxLayout( getContentPane(), BoxLayout.X_AXIS ) );
+		getContentPane().add( mainPanel );
+		getContentPane().add( charPanel );
+		
+d105 1
+a105 3
+		);
+			
+		pack();
+d107 1
+a107 4
+		setSize( new Dimension( 630, 320 ) );
+		System.out.println( getSize() );
+		inputWindow.requestFocusInWindow();
+		
+d115 2
+a116 1
+	public void displayOutput( String line )
+d118 1
+a118 5
+		String text = outputWindow.getText();
+		text = text + "\n" + line;
+		outputWindow.setText( text );
+		JScrollBar sbar = scrollPane.getVerticalScrollBar();
+		sbar.setValue( sbar.getMaximum() );
+d127 1
+a127 10
+		String[] classes = { "Fighter", "Mage" };
+		nameLabel.setText( "Name:  " + thePlayer.getName() );
+		levelLabel.setText( "Level: " + thePlayer.getLevel() );
+		classLabel.setText( "Class: " + classes[thePlayer.getPlayerClass()] );
+		goldLabel.setText( "Gold:  " + thePlayer.getCurrentGold() );		
+		strLabel.setText( "Str: " + thePlayer.getStat( PlayerCharacter.STR ) );
+		dexLabel.setText( "Dex: " + thePlayer.getStat( PlayerCharacter.DEX ) );
+		conLabel.setText( "Con: " + thePlayer.getStat( PlayerCharacter.CON ) );
+		intLabel.setText( "Int: " + thePlayer.getStat( PlayerCharacter.INT ) );
+		repaint();						
+@

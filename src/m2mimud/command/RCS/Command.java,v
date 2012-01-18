@@ -1,0 +1,363 @@
+head	1.13;
+access;
+symbols;
+locks
+	rjw2183:1.13; strict;
+comment	@# @;
+
+
+1.13
+date	2004.12.10.02.29.38;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.11.03.03.44.48;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.10.13.03.15.41;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.09.23.01.13.19;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.09.17.03.42.56;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.09.16.03.09.15;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.07.22.19.34.08;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.07.16.18.36.21;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.29.20.00.14;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.24.17.54.26;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.16.19.59.10;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.11.19.16.36;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.12.47;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@/** 
+ * The command class is an object representation the command which the user 
+ * entered.  It is created by the parser and passed to the system.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: Command.java,v 1.12 2004/11/03 03:44:48 rjw2183 Exp $ 
+ */
+ package m2mimud.command;  
+
+ public class Command
+ {
+ 	
+	
+	// The list of command available to the user
+	public static final int QUIT            = 0;
+	public static final int CREATE          = 1;
+	public static final int LIST            = 2;
+	public static final int LOOK            = 3;
+	public static final int MOVE            = 4;
+	public static final int YELL            = 5;
+	public static final int CREATE_GAME     = 6;
+	public static final int FIND_GAMES      = 7;
+	public static final int CANCEL_SESSION  = 8;
+	public static final int LEAVE_SESSION   = 9;
+	public static final int WHO             = 10;  
+	public static final int SAY             = 11; 
+	public static final int DIG_POND        = 12;
+	public static final int HOUSE_CREATE    = 13;
+	public static final int SESSION_COMMAND = 14;
+	public static final int TIME            = 15;
+	public static final int GOTO            = 16;
+	public static final int LIST_WARES      = 17;
+	public static final int BUY             = 18;	
+	public static final int INVENTORY       = 19;	
+	public static final int CHECK_FRIENDS   = 20;
+	public static final int LOOKUP          = 21;
+	public static final int REMOVE          = 22;
+	public static final int HOUSE_ENTER     = 23;
+	public static final int EQUIP           = 24;
+	public static final int ATTACK 	        = 25;
+	public static final int LLIST           = 26;
+	public static final int LSEND           = 27;
+	public static final int LADD            = 28;
+	public static final int LCHECK          = 29;		
+	public static final int ADD             = 30;
+	public static final int SEND            = 31;
+	public static final int SELL            = 32;
+	public static final int ATTACK_NO_TARG  = 33;
+	public static final int CHALLENGE       = 34;
+	public static final int ACCEPT          = 35;
+	public static final int DECLINE         = 36;
+	public static final int MAP             = 37;
+	public static final int LOAD            = 38;
+	public static final int SAVE            = 39;
+	public static final int STATE_REMOVE    = 40;
+	public static final int SAVE_QUICK      = 41;
+	public static final int USE             = 42;
+	public static final int PARTITION       = 43;
+	public static final int ENTER           = 44;
+	public static final int CAST            = 45;
+	public static final int CAST_NO_TARG    = 46;
+	public static final int LEAVE_HOUSE     = 47;
+	public static final int CLEAR_SCREEN    = 48;
+	public static final int DISPLAY_PART    = 49;
+	public static final int DO_REPORT_NOW   = 50;
+	public static final int SURRENDER       = 51;
+	public static final int MOB_COMMAND     = 52;
+        public static final int PRINT_MOBS      = 53;
+        public static final int INVALID_COMMAND = 54;	
+	
+	private int type;	// the type of command this is
+
+	/**
+	 * Constructor
+	 * @@param type The type of command this is
+	 */
+	public Command( int type )
+	{
+		this.type = type;		
+	}
+	
+	/**
+	 * Returns the type of command this is
+	 */
+	public int getType()
+	{
+		return type;
+	}
+}
+	
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.11 2004/10/13 03:15:41 rjw2183 Exp $ 
+d68 2
+a69 1
+	public static final int INVALID_COMMAND = 53;	
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.10 2004/09/23 01:13:19 rjw2183 Exp $ 
+d67 2
+a68 1
+	public static final int INVALID_COMMAND = 52;	
+@
+
+
+1.10
+log
+@Added the command to leave and enter a house.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.9 2004/09/17 03:42:56 rjw2183 Exp rjw2183 $ 
+d34 34
+a67 31
+	public static final int INVENTORY       = 19;
+	//public static final int PLAYER          = 20;
+	public static final int CHECK_FRIENDS   = 21;
+	public static final int LOOKUP          = 22;
+	public static final int REMOVE          = 23;
+	public static final int HOUSE_ENTER     = 24;
+	public static final int EQUIP           = 25;
+	public static final int ATTACK 	        = 26;
+	public static final int LLIST           = 27;
+	public static final int LSEND           = 28;
+	public static final int LADD            = 29;
+	public static final int LCHECK          = 30;		
+	public static final int ADD             = 32;
+	public static final int SEND            = 33;
+	public static final int SELL            = 34;
+	public static final int ATTACK_NO_TARG  = 35;
+	public static final int CHALLENGE       = 36;
+	public static final int ACCEPT          = 37;
+	public static final int DECLINE         = 38;
+	public static final int MAP             = 39;
+	public static final int LOAD            = 40;
+	public static final int SAVE            = 41;
+	public static final int STATE_REMOVE    = 42;
+	public static final int SAVE_QUICK      = 43;
+	public static final int USE             = 44;
+	public static final int PARTITION       = 45;
+	public static final int ENTER           = 46;
+	public static final int CAST            = 47;
+	public static final int CAST_NO_TARG    = 48;
+	public static final int LEAVE_HOUSE     = 49;
+	public static final int INVALID_COMMAND = -999;	
+@
+
+
+1.9
+log
+@Added the cast command.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.8 2004/09/16 03:09:15 rjw2183 Exp rjw2183 $ 
+d63 1
+@
+
+
+1.8
+log
+@Added the house enter command.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.7 2004/07/22 19:34:08 rjw2183 Exp rjw2183 $ 
+d61 2
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.6 2004/07/16 18:36:21 rjw2183 Exp rjw2183 $ 
+d60 1
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.5 2004/06/29 20:00:14 rjw2183 Exp rjw2183 $ 
+d59 1
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.4 2004/06/24 17:54:26 rjw2183 Exp rjw2183 $ 
+d55 4
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.3 2004/06/16 19:59:10 rjw2183 Exp rjw2183 $ 
+d15 1
+a15 1
+	public static final int QUIT           = 0;
+d54 1
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.2 2004/06/11 19:16:36 rjw2183 Exp rjw2183 $ 
+d53 1
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.1 2004/06/10 17:12:47 rjw2183 Exp rjw2183 $ 
+d49 4
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: Command.java,v 1.17 2004/06/09 19:51:37 rjw2183 Exp rjw2183 $ 
+d33 1
+a33 1
+	public static final int TRANSACTION     = 18;	
+d35 1
+a35 1
+	public static final int PLAYER          = 20;
+d48 1
+@

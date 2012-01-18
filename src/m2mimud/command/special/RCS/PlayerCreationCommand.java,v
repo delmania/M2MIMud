@@ -1,0 +1,73 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2004.08.17.17.53.17;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.05.24;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The CreateCommand is used to to store the data needed to create a new character.
+ * 
+ * @@author: Robert Whitcomb
+ * @@version: $Id: PlayerCreationCommand.java,v 1.1 2004/06/10 17:05:24 rjw2183 Exp rjw2183 $
+ * 
+ */
+ package m2mimud.command.special;
+ import m2mimud.command.Command;
+ 
+ public class PlayerCreationCommand
+ extends Command
+ {
+ 	public String name;
+	public String clas;
+	public int sex;
+	
+	public PlayerCreationCommand( String name, int sex, String clas )
+	{
+		super( Command.CREATE );
+		this.name = name;
+		this.sex = sex;
+		this.clas = clas;
+	}
+}
+		
+	
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: CreateCommand.java,v 1.1 2004/03/10 16:05:56 rjw2183 Exp rjw2183 $
+d15 1
+a15 1
+	public int clas;
+d18 1
+a18 1
+	public PlayerCreationCommand( String name, int sex, int clas )
+@

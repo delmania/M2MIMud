@@ -1,0 +1,269 @@
+head	1.6;
+access;
+symbols;
+locks
+	rjw2183:1.6; strict;
+comment	@# @;
+
+
+1.6
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.09.23.03.59.57;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.09.22.03.27.36;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.08.17.17.53.33;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.08.17.16.49.46;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.08.17.16.38.54;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@package m2mimud.state;
+
+import java.io.*;
+
+
+public class PlayerClass
+implements Externalizable
+{
+	public String className; // The name of the class
+	public int classCode; // An integer code that reference this class
+	public int str; // start strength stat
+	public int cons; // starting constitution stat
+	public int dex; // starting dexterity stat
+	public int intg; // starting intelligence stat
+	public int hp; // start hit points value
+	
+	
+	/**
+	 * Constructor
+	 * Initialzes all the value of the player class
+	 */
+	public PlayerClass( String name, int code, int str, int cons, 
+			    int dex, int intg, int hp )
+	{
+		className = name;
+		classCode = code;
+		this.str  = str;
+		this.cons = cons;
+		this.dex = dex;
+		this.intg = intg;
+		this.hp = hp;
+	}
+	
+	/** 
+	 * Default constructor (used to readExternal)
+	 */
+	public PlayerClass()
+	{
+		className = new String();
+	}
+	
+	/** 
+	 * Writes this object to an output stream
+	 * out The output object to write to
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+		out.writeObject( className );
+		out.writeInt( classCode );
+		out.writeInt( str );
+		out.writeInt( cons );
+		out.writeInt( dex );
+		out.writeInt( intg );
+		out.writeInt( hp );
+	}
+	
+	/**  
+	 * Reads the object from the given input object
+	 * @@param in The object to read from
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{
+		className = (String)in.readObject();
+		classCode = in.readInt();
+		str = in.readInt();
+		cons = in.readInt();
+		dex = in.readInt();
+		intg = in.readInt();
+		hp = in.readInt();
+	}
+	
+	/** 
+	 * Saves this player class to a file
+	 */
+	public void save()
+	{
+		try
+		{
+			String fileName = new String( "classes/" + className + ".dat" );
+			File theFile = new File( fileName );
+			FileOutputStream fileStream = new FileOutputStream( theFile );
+			ObjectOutputStream objStream = new ObjectOutputStream( fileStream );
+			objStream.writeObject( this );
+			objStream.flush();
+			objStream.close();
+			fileStream.close();
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+			System.exit( 1 );
+		}
+	}
+	
+	/** 
+	 * Loads the playerClass information froma  file
+	 * @@param cName The name of the player class to load
+	 * This corresponds to the name of the file that holds the player
+	 * class information.
+	 */
+	public static PlayerClass load( String cName )
+	{
+		String fileName = new String( "data/" + cName + ".dat" );
+		PlayerClass retVal = null;
+		File theFile = new File( fileName );
+		if( theFile.exists() )
+		{
+			try
+			{
+				FileInputStream inStream = new FileInputStream( theFile );
+				ObjectInputStream objStream = new ObjectInputStream( inStream );
+				retVal = (PlayerClass)objStream.readObject();
+				objStream.close();
+				inStream.close();		
+			}
+			catch( Exception e )
+			{
+				e.printStackTrace();
+				System.exit( 1 );
+			}
+		}
+		return retVal;
+	}	
+}
+@
+
+
+1.5
+log
+@Uh, did nothing.
+@
+text
+@d9 7
+a15 7
+	public String className;
+	public int classCode;
+	public int str;
+	public int cons;
+	public int dex;
+	public int intg;
+	public int hp;
+d18 4
+d34 3
+d42 4
+d58 4
+d74 3
+d97 6
+a125 1
+	
+@
+
+
+1.4
+log
+@Added the code to to take care of spellcasting.
+@
+text
+@d101 2
+a102 1
+	}
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d81 1
+a81 1
+		String fileName = new String( "classes/" + cName + ".dat" );
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d92 2
+a93 2
+				inStream.close();
+			}			
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d32 1
+a32 1
+		name = new String();
+d36 1
+a36 1
+	throws IOExeception
+d38 2
+a39 2
+		out.writeObject( name );
+		out.writeInt( code );
+d48 1
+a48 1
+	throws IOException
+d50 2
+a51 2
+		name = (String)in.readObject();
+		code = in.readInt();
+d63 1
+a63 1
+			String fileName = new file( "classes/" + name + ".dat" );
+d67 1
+a67 1
+			objStream.writeObj( this );
+d71 1
+d91 1
+a91 1
+				objStream.close()
+@

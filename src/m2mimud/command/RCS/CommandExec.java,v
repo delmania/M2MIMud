@@ -1,0 +1,73 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2005.01.06.13.46.11;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.12.47;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The CommandExec interface is used to designate a class which can accept
+ * command for processing.
+ * 
+ * @@author: Robert Whitcomb
+ * @@version: $Id: CommandExec.java,v 1.1 2004/06/10 17:12:47 rjw2183 Exp $ 
+ */
+ package m2mimud.command;
+ 
+ public interface CommandExec
+ {
+ 	/** 
+	 * Accept a command for processing
+	 * 
+	 * @@param comm The command for processing.
+	 */
+	 public void executeCommand( String command );	
+ }
+ 
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 15
+ * @@version: $Id: CommandExec.java,v 1.2 2004/06/08 15:13:00 rjw2183 Exp rjw2183 $
+ * Revisions:
+ * $Log: CommandExec.java,v $
+ * Revision 1.2  2004/06/08 15:13:00  rjw2183
+ * *** empty log message ***
+ *
+ * Revision 1.1  2004/03/10 16:05:56  rjw2183
+ * Initial revision
+ *
+ * Revision 1.1  2004/03/09 16:50:16  rjw2183
+ * Initial revision
+ *
+ * Revision 1.1  2004/02/17 16:52:36  rjw2183
+ * Initial revision
+ *
+@

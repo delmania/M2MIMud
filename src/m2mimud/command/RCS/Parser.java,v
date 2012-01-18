@@ -1,0 +1,1329 @@
+head	1.20;
+access;
+symbols;
+locks
+	rjw2183:1.20; strict;
+comment	@# @;
+
+
+1.20
+date	2005.01.06.13.46.11;	author rjw2183;	state Exp;
+branches;
+next	1.19;
+
+1.19
+date	2004.12.10.02.29.38;	author rjw2183;	state Exp;
+branches;
+next	1.18;
+
+1.18
+date	2004.11.11.04.29.07;	author rjw2183;	state Exp;
+branches;
+next	1.17;
+
+1.17
+date	2004.11.03.03.44.48;	author rjw2183;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2004.10.13.03.17.08;	author rjw2183;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2004.10.13.03.15.41;	author rjw2183;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2004.09.23.04.01.19;	author rjw2183;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2004.09.23.01.13.19;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.09.17.03.42.56;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.09.16.03.09.15;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.08.17.17.53.11;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.07.22.19.34.08;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.07.16.18.36.21;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.07.06.19.59.40;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.06.29.20.00.14;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.24.17.54.26;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.16.19.59.10;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.15.19.52.11;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.11.19.16.36;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.12.47;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.20
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The Parser is the object that takes in the string value typed in by the user
+ * and creates a Command object that can be given to the GameSystem to tell
+ * it what to do to perform the user's action
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: Parser.java,v 1.19 2004/12/10 02:29:38 rjw2183 Exp $
+ */
+package m2mimud.command;
+import m2mimud.command.special.*;
+import java.io.*;
+import java.util.regex.*;
+import m2mimud.state.PlayerCharacter;
+
+public class Parser
+{
+    private String [] theCommands;
+    
+    /**
+     * Constructor
+     */
+    public Parser()
+    {
+        try
+        {
+        	ObjectInputStream oStream = 
+	        	new ObjectInputStream
+			( new FileInputStream( "data/commands.data" ) );
+	        theCommands = (String[])oStream.readObject();
+        	oStream.close();
+        }
+        catch( Exception e )
+        {
+            e.printStackTrace();
+            System.exit( 1 );
+        }
+    }
+    
+    /**
+     * The parse command takes in the user's input and transforms it into a 
+     * Command object
+     * @@param command The user's text command
+     */
+    public Command parse( String command )
+    {
+    	Command retVal = null;      
+    	int commandCode = getCommandCode( command );               
+    	if( isBasicCommand( commandCode ) )
+        	retVal = new Command( commandCode );
+    	else
+       		retVal = processCommand( commandCode, command.trim() );
+    	return retVal;
+    }
+    
+    /**
+     * Given a string command, this determines what the integer code
+     * is for the appropriate Command object
+     * @@param theCommand The string command
+     */
+    private int getCommandCode( String theCommand )
+    {
+        int retVal = Command.INVALID_COMMAND;
+        boolean found = false;
+        for( int i = 0; i < theCommands.length && !found ; i++)
+        {
+	    if( theCommands[i] != null )	        
+            {
+	    	Pattern commPattern = Pattern.compile( theCommands[i].trim() );		
+		if( commPattern.matcher( theCommand.trim() ).matches() )
+		{			
+			retVal = i;
+	                found = true;
+		}
+            }
+        }
+        return retVal;
+    }
+    
+    /**
+     * Returns whether or not a command code is for
+     * a basic command.  A basic command is a command that
+     * has no paramaters.  Examples of this type of command
+     * would be the look and list wares commands.  
+     * @@param commandCode The command code to look at
+     */
+    private boolean isBasicCommand( int commandCode )
+    {
+        return ( commandCode == Command.QUIT ||
+                 commandCode == Command.LIST_WARES ||
+		 commandCode == Command.LIST ||
+                 commandCode == Command.LOOK ||
+                 commandCode == Command.TIME ||
+                 commandCode == Command.WHO ||
+                 commandCode == Command.LEAVE_SESSION ||
+                 commandCode == Command.FIND_GAMES ||
+                 commandCode == Command.SAVE_QUICK ||
+                 commandCode == Command.DIG_POND ||              
+                 commandCode == Command.CHECK_FRIENDS ||
+                 commandCode == Command.INVENTORY ||
+                 commandCode == Command.LEAVE_HOUSE ||
+                 commandCode == Command.DISPLAY_PART ||
+                 commandCode == Command.CLEAR_SCREEN ||
+                 commandCode == Command.MAP ||
+                 commandCode == Command.LLIST ||                
+		 commandCode == Command.INVALID_COMMAND ||
+		 commandCode == Command.DO_REPORT_NOW ||
+		 commandCode == Command.SURRENDER ||
+                 commandCode == Command.PRINT_MOBS );                                
+    }
+    
+    /**
+     * This function deals with the none basic commands, the one that do have
+     * parameters and therefore need special processing
+     * @@param code The command code to indicate what kind of command this is
+     * @@param command The string value of the command
+     */
+    private Command processCommand( int commandCode, String command )
+    {
+        Command retVal = null;
+        if( commandCode ==  Command.YELL || commandCode == Command.SAY )
+        {
+            // Say or yell commands
+	    String message =command.substring( command.indexOf( "") + 1,
+                            command.length() ).trim();
+            retVal = new StringCommand( commandCode, message );
+        }
+        else if( commandCode == Command.MOVE )
+        {
+            // Movement commands
+	    String direction = command.substring( command.indexOf( " " ) + 1,  
+                               command.length() ).trim();
+            int dirCode = -99;	             
+	    
+	    if( direction.equals( "north" ) )
+                dirCode = IntCommand.NORTH;
+            
+	    else if( direction.equals( "south" ) )
+                dirCode = IntCommand.SOUTH;
+            
+	    else if( direction.equals( "east" ) )
+                dirCode = IntCommand.EAST;
+            
+	    else if( direction.equals( "west" ) )
+                dirCode = IntCommand.WEST;
+		
+            retVal = new IntCommand( Command.MOVE, dirCode );                
+        }
+        else if( commandCode == Command.CREATE_GAME )
+        {
+            // Game creation command  
+	    retVal = new StringCommand
+            ( commandCode, command.substring( command.indexOf( " ") + 1, 
+            command.length() ).trim() );
+        }
+        else if( commandCode == Command.CREATE )
+        {
+            // Character Creation command
+	    String[] charData  = command.split( "\\s" );
+            String name = charData[2];
+            String clas = charData[3];
+            int sex = PlayerCharacter.FEMALE;
+            if( charData[1].equals( "male" ) )
+                sex = PlayerCharacter.MALE;
+            retVal = new PlayerCreationCommand( name, sex, clas );  
+        }
+        else if( commandCode == Command.HOUSE_CREATE )
+        {
+            // House creation commands
+	    retVal = new HouseCreationCommand
+            ( command.substring( command.indexOf( " ") + 1, 
+              command.length() ), true );
+        }
+        else if( commandCode == Command.GOTO )
+        {
+            // goto command
+	    String[] warpData = command.split( "\\s" );
+            int x = Integer.parseInt( warpData[1] );
+            int y = Integer.parseInt( warpData[2] );
+            retVal = new GotoCommand( x, y );
+        }
+        else if( commandCode == Command.BUY )
+        {
+               // Buy or Sell commands
+	       String[] transactionData = command.split( "\\s" );
+               if( transactionData[0].equals( "sell" ) )
+                   commandCode = Command.SELL;
+               String itemId = transactionData[1];
+               int amount = Integer.parseInt( transactionData[2] );
+               retVal = new StringIntCommand( commandCode, amount, itemId );
+        }
+        else if( commandCode == Command.SEND || commandCode == Command.LSEND )
+        {
+            // Send (including lsend) command
+	    int firstSpace = command.indexOf( " " );
+            int secondSpace = command.indexOf( " ", firstSpace + 1 );
+            String msg = command.substring( secondSpace + 1, command.length() ).trim();
+            
+            String name = command.substring( firstSpace + 1, secondSpace ).trim();            
+            if( commandCode == Command.LSEND )
+            {
+                int id = Integer.parseInt( name );
+                retVal = new SendCommand( id, msg );
+            }
+            else
+                retVal = new SendCommand( name, msg );
+        }
+        else if( commandCode == Command.ADD || commandCode == Command.CHALLENGE )
+        {            
+            // Add/lookup commands
+	    String comm = command.substring( 0, command.indexOf( " " ) ).trim();
+            String name = command.substring( command.indexOf( " " ) + 1,  
+                                             command.length() ).trim();
+            if( commandCode == Command.CHALLENGE )
+	    	retVal = new StringCommand( Command.CHALLENGE, name );
+	    else
+	    {
+	    	if( comm.equals( "lookup" ) )                                   
+        		commandCode = Command.LOOKUP;
+	        retVal = new StringCommand( commandCode, name );
+	    }
+        }
+        else if( commandCode == Command.LADD )
+        {
+            // ladd command
+	    int index = Integer.parseInt( command.substring(
+            command.indexOf( " ") + 1, command.length() ).trim() );
+            String comm = command.substring( 
+            0, command.indexOf( " " ) ).trim();
+            
+            if( comm.equals( "lcheck ") ) 
+                commandCode = Command.LCHECK;
+            retVal = new IntCommand( commandCode, index );
+        }
+        else if( commandCode == Command.EQUIP || commandCode == Command.USE )
+        {
+            // Equip Command
+	    String itemId = command.substring( 
+            command.indexOf( " ") + 1, command.length() );
+            retVal = new StringCommand( commandCode, itemId );
+        }
+	else if( commandCode == Command.REMOVE )
+	{
+		String name = command.substring(
+		0, command.indexOf( " " ) ).trim();
+		retVal = new StringCommand( commandCode, name );
+	}
+	else if( commandCode == Command.ATTACK || commandCode == Command.ATTACK_NO_TARG )
+	{
+		int spacePos = command.indexOf( " " );
+		String attackName = null;
+		
+		if( commandCode == Command.ATTACK_NO_TARG )
+			attackName = command.trim();
+		else
+			attackName = command.substring( 0, spacePos ).trim();
+			
+		int atkType = -1;
+		if( attackName.equals( "punch" ) || attackName.equals( "pu" ) )
+			atkType = StringIntCommand.PUNCH;
+		else if( attackName.equals( "kick" ) || attackName.equals( "ki" ) )
+			atkType = StringIntCommand.KICK;
+		else if( attackName.equals( "slash" ) || attackName.equals( "sl" ) )
+			atkType = StringIntCommand.SLASH;
+		else if( attackName.equals( "thrust" ) || attackName.equals( "th" ) )
+			atkType = StringIntCommand.THRUST;
+		
+		if( commandCode == Command.ATTACK )
+		{
+			String tName = command.substring( spacePos + 1, command.length() );
+			retVal = new StringIntCommand( commandCode, atkType, tName );
+		}
+		else
+			retVal = new IntCommand( commandCode, atkType );
+	}
+	else if( commandCode == Command.CAST || commandCode == Command.CAST_NO_TARG )
+	{
+		String[] castData = command.split( "\\s" );
+		String splId = castData[1];
+		if( commandCode == Command.CAST )
+		{
+			String name = castData[2];
+			retVal = new CastCommand( splId, name );
+		}
+		else
+			retVal = new StringCommand( Command.CAST_NO_TARG, splId );
+	}
+	else if( commandCode == Command.SAVE || commandCode == Command.LOAD )
+	{
+		String[] data = command.split( "\\s" );
+		int dataType = -1;
+		String which = data[1];
+		String name = data[2];
+		
+		if( which.equals( "player" ) )
+			dataType = StringIntCommand.PLAYER;
+		else if( which.equals( "map" ) )
+			dataType = StringIntCommand.MAP;
+		else
+			dataType = StringIntCommand.WORLD;
+		retVal = new StringIntCommand( commandCode, dataType, name );
+		
+	}
+	else if( commandCode == Command.STATE_REMOVE )
+	{
+		int houseNum = -1;
+		String[] removeData = command.split( "\\s" );
+		if( removeData[1].equals( "house" ) )
+			houseNum = Integer.parseInt( removeData[2] );
+		retVal = new IntCommand( commandCode, houseNum );
+	}
+	else if( commandCode == Command.PARTITION || commandCode == Command.ENTER
+	         || commandCode == Command.HOUSE_ENTER )
+	{
+
+		int firstPos = command.indexOf( " " );
+		int secondPos = command.indexOf( " ", firstPos + 1 );
+		String which = command.substring( secondPos,
+						  command.length() ).trim();
+		int data = Integer.parseInt( which );
+		retVal = new IntCommand( commandCode, data );
+	}
+	else if( commandCode == Command.MOB_COMMAND )
+	{
+		String[] cmdData = command.split( "\\s" );
+		
+		int key1 = Integer.parseInt( cmdData[1] );
+		int key2 = Integer.parseInt( cmdData[2] );
+		int which = -999;
+		
+		if( cmdData[0].equals( "kill" ) )
+			which = MobCommand.KILL;
+		else if( cmdData[0].equals( "move" ) )
+			which = MobCommand.MOVE;
+		else if( cmdData[0].equals( "respawn" ) )
+			which = MobCommand.RESPAWN;
+		else if( cmdData[0].equals( "find" ) )
+			which = MobCommand.FIND;
+		
+		retVal = new MobCommand( which, key1, key2 );
+			
+		
+	}
+	else if( commandCode == Command.ACCEPT )
+	{
+		int which = commandCode;
+		if( command.trim().equals( "decline" ) )
+			which = Command.DECLINE;
+		retVal = new Command( which );
+	}
+	else	
+		retVal = new Command( Command.INVALID_COMMAND );
+
+        return retVal;
+    }
+}
+@
+
+
+1.19
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Parser.java,v 1.18 2004/11/11 04:29:07 rjw2183 Exp rjw2183 $
+d26 5
+a30 4
+        ObjectInputStream oStream = 
+            new ObjectInputStream( new FileInputStream( "data/commands.data" ));
+        theCommands = (String[])oStream.readObject();
+        oStream.close();
+d46 7
+a52 7
+      Command retVal = null;      
+      int commandCode = getCommandCode( command );               
+      if( isBasicCommand( commandCode ) )
+          retVal = new Command( commandCode );
+      else
+          retVal = processCommand( commandCode, command.trim() );
+      return retVal;
+d88 21
+a108 21
+        return (commandCode == Command.QUIT ||
+                commandCode == Command.LIST_WARES ||
+		commandCode == Command.LIST ||
+                commandCode == Command.LOOK ||
+                commandCode == Command.TIME ||
+                commandCode == Command.WHO ||
+                commandCode == Command.LEAVE_SESSION ||
+                commandCode == Command.FIND_GAMES ||
+                commandCode == Command.SAVE_QUICK ||
+                commandCode == Command.DIG_POND ||              
+                commandCode == Command.CHECK_FRIENDS ||
+                commandCode == Command.INVENTORY ||
+                commandCode == Command.LEAVE_HOUSE ||
+                commandCode == Command.DISPLAY_PART ||
+                commandCode == Command.CLEAR_SCREEN ||
+                commandCode == Command.MAP ||
+                commandCode == Command.LLIST ||                
+		commandCode == Command.INVALID_COMMAND ||
+		commandCode == Command.DO_REPORT_NOW ||
+		commandCode == Command.SURRENDER ||
+                commandCode == Command.PRINT_MOBS );                                
+d350 1
+a350 2
+	else
+	
+@
+
+
+1.18
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Parser.java,v 1.17 2004/11/03 03:44:48 rjw2183 Exp rjw2183 $
+d106 2
+a107 1
+		commandCode == Command.SURRENDER  );                                
+@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Parser.java,v 1.16 2004/10/13 03:17:08 rjw2183 Exp rjw2183 $
+d89 1
+d103 1
+a103 2
+                commandCode == Command.LLIST ||
+                commandCode == Command.ACCEPT ||
+d128 5
+a132 4
+	    String direction = command.substring( command.indexOf( " ") + 1,  
+                               command.length() );
+            int dirCode = -99;
+            if( direction.equals( "north" ) )
+d134 2
+a135 1
+            else if( direction.equals( "south " ) )
+d137 2
+a138 1
+            else if( direction.equals( "east" ) )
+d140 2
+a141 1
+            else    
+d143 1
+d183 1
+a183 1
+               if( transactionData[0].equals( "sell " ) )
+d334 2
+d341 7
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Parser.java,v 1.15 2004/10/13 03:15:41 rjw2183 Exp rjw2183 $
+d61 1
+a61 1
+        int retVal = 52;
+d106 1
+a106 1
+		commandCode == Command.SURRENDER );                                
+d315 19
+d335 1
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id$
+d46 1
+a46 2
+      int commandCode = getCommandCode( command );          
+      System.err.println( "commandCode = " + commandCode );
+@
+
+
+1.14
+log
+@Fixed some issues with the leavePattern and leaveHousePattern,
+@
+text
+@d1 321
+a321 462
+/**
+ * The parser class is reponsible for checking that the user's input
+ * is of the correct syntax and then creating a command object from
+ * the command
+ *
+ * @@author: Robert Whitcomb
+ * @@file: $Id: Parser.java,v 1.13 2004/09/23 01:13:19 rjw2183 Exp rjw2183 $
+ */
+ package m2mimud.command;
+ 
+ import java.util.regex.*; 
+ import m2mimud.state.PlayerCharacter;
+ import m2mimud.state.Merchant;
+ import m2mimud.command.special.*;
+ 
+ public class Parser
+ {
+ 	private String command; // the command to parse
+
+	// The various patterns for the command of the system
+	private Pattern walkPattern;
+	private Pattern quitPattern;
+ 	private Pattern yellPattern;
+	private Pattern lookPattern;
+	private Pattern listPattern;
+	private Pattern createPattern;
+	private Pattern createGamePattern;
+	private Pattern findGamePattern;
+	private Pattern cancelPattern;
+	private Pattern leavePattern;
+	private Pattern whoPattern;
+	private Pattern sayPattern;
+	private Pattern digPattern;
+	private Pattern houseCreationPattern;
+	private Pattern sessionCommandPattern;
+	private Pattern timePattern;	
+	private Pattern warpPattern;
+	private Pattern waresPattern;
+	private Pattern buyPattern;
+	private Pattern invPattern;
+	private Pattern sendPattern;
+	private Pattern playerPattern;
+	private Pattern checkPattern;
+	private Pattern llistPattern;
+	private Pattern lsendPattern;
+	private Pattern lcheckAddPattern;
+	private Pattern removePattern;
+	private Pattern equipPattern;
+	private Pattern attackPattern;
+	private Pattern attackNoTargetPattern;
+	private Pattern challengePattern;
+	private Pattern acceptPattern;
+	private Pattern mapPattern;
+	private Pattern loadPattern;
+	private Pattern savePattern;
+	private Pattern removeSPattern;
+	private Pattern saveQPattern;
+	private Pattern usePattern;
+	private Pattern partitionPattern;
+	private Pattern houseEnterPattern;
+	private Pattern castPattern;
+	private Pattern castNoTargPattern;
+	private Pattern leaveHousePattern;
+	
+	public Parser()
+	{
+		walkPattern = Pattern.compile( "(walk|w) (north|south|east|west)" );
+		quitPattern = Pattern.compile( "(quit|q)" );
+		yellPattern = Pattern.compile( "(yell|y) .*" );
+		lookPattern = Pattern.compile( "(look|lo)" );
+		listPattern = Pattern.compile( "(list|li)" );
+		createGamePattern = Pattern.compile( "game .*" );
+		createPattern = Pattern.compile( "create (male|female) \\w+ \\w+" );
+		findGamePattern = Pattern.compile( "find" );
+		cancelPattern = Pattern.compile( "cancel game" );
+		leavePattern = Pattern.compile( "leave" );
+		whoPattern = Pattern.compile( "who" );
+		sayPattern = Pattern.compile( "(say|s) .*" );
+		digPattern = Pattern.compile( "dig pond" );
+		houseCreationPattern = Pattern.compile( "createhouse .*" );
+		sessionCommandPattern = Pattern.compile( "(attach|detach)" );
+		timePattern = Pattern.compile( "time" );
+		warpPattern = Pattern.compile( "goto (\\d)+ (\\d)+" );	
+		waresPattern = Pattern.compile( "list wares" );
+		buyPattern = Pattern.compile( "(buy|sell) \\D+ \\d+"  );
+		invPattern = Pattern.compile( "(inventory|inv)" );
+		sendPattern = Pattern.compile( "send \\w+ .*" );
+		playerPattern = Pattern.compile( "(add|lookup) \\w+" );
+		checkPattern = Pattern.compile( "check friends" );
+		llistPattern = Pattern.compile( "llist" );
+		lsendPattern = Pattern.compile( "lsend \\d+ .*" );
+		lcheckAddPattern = Pattern.compile( "(ladd|lcheck|enterhouse) \\d+" );	
+		removePattern = Pattern.compile( "remove \\d+" );
+		equipPattern = Pattern.compile( "equip \\w+" );
+		attackPattern = Pattern.compile( "(punch|kick|slash|thrust|pu|ki|sl|th) .*" );
+		attackNoTargetPattern = Pattern.compile( "(punch|kick|slash|thrust|pu|ki|sl|th)" );
+		challengePattern = Pattern.compile( "challenge \\w+" );
+		acceptPattern = Pattern.compile( "accept|decline" );
+		mapPattern = Pattern.compile( "map" );
+		loadPattern = Pattern.compile( "load (player|map|world) \\w+" );
+		savePattern = Pattern.compile( "save (world|map) \\w+" );
+		removeSPattern = Pattern.compile( "remove (pond|house \\d+)" );
+		saveQPattern = Pattern.compile( "save" );
+		usePattern = Pattern.compile( "use \\w+" );
+		partitionPattern = Pattern.compile( "set partition \\d+" );
+		houseEnterPattern = Pattern.compile( "enter house \\d+" );
+		castPattern = Pattern.compile( "cast \\w+ \\w+" );
+		castNoTargPattern = Pattern.compile( "cast \\w+" );
+		leaveHousePattern = Pattern.compile( "leave house" );
+	}
+	
+	// This takes the user's command and veridies it is correct
+	public Command parse( String uCommand )
+	{
+		boolean bMatches;
+		Command retCommand = null;
+		command = uCommand.trim();
+		
+		if( quitPattern.matcher( command ).matches() )
+			retCommand = new Command( Command.QUIT );
+		else if( walkPattern.matcher( command ).matches() )
+		{
+			int direction = 0;
+
+			String[] commands = command.split( "\\s" );
+			if( commands[1].equals( "north" ) )
+				direction = IntCommand.NORTH;
+			if( commands[1].equals( "south" ) )
+				direction = IntCommand.SOUTH;
+			if( commands[1].equals( "west") )
+				direction = IntCommand.WEST;
+			if( commands[1].equals( "east" ) )	
+				direction = IntCommand.EAST;
+				
+			retCommand = new IntCommand( Command.MOVE, direction );			
+		}
+		else if( yellPattern.matcher( command ).matches() )
+		{                                                                                        
+			retCommand = new StringCommand( Command.YELL, command.substring( 
+			command.indexOf( " " )+1, command.length() ) );
+		}
+		else if( lookPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.LOOK );
+		}
+		else if( listPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.LIST );
+		}
+		else if( createGamePattern.matcher( command ).matches() )
+		{
+			String [] data = command.split( "\\s" );
+			retCommand = new StringCommand( Command.CREATE_GAME, data[1] );
+		}
+		else if( createPattern.matcher( command ).matches() )
+		{
+			String [] data = command.split( "\\s" );
+			String name, clas;
+			int sex;
+			name = data[2];
+			if( data[1].equals( "male" ) )
+				sex = PlayerCharacter.MALE;
+			else
+				sex = PlayerCharacter.FEMALE;
+
+			clas = data[3];			
+			retCommand = new PlayerCreationCommand( name, sex, clas );
+		}
+		else if( findGamePattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.FIND_GAMES );
+		}
+		else if( leavePattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.LEAVE_SESSION );
+		}
+		else if( whoPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.WHO );
+		}
+		else if( sayPattern.matcher( command  ).matches() )
+		{
+			retCommand = new StringCommand( Command.SAY, command.substring( 
+			command.indexOf( " " )+1, command.length() ) );
+		}
+		else if( digPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.DIG_POND );
+		}
+		else if( houseCreationPattern.matcher( command ).matches() )
+		{	
+			String[] values = command.split( "\\s" );			
+			StringBuffer houseDesc = new StringBuffer();
+			for( int i = 1; i < values.length; i++ )
+				houseDesc.append( values[i] + " " );
+			retCommand = new HouseCreationCommand( houseDesc.toString().trim(), true );		
+		}
+		else if( sessionCommandPattern.matcher( command ).matches() )
+		{			
+		}
+		else if( timePattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.TIME );
+		}	
+		else if( warpPattern.matcher( command ).matches() )
+		{
+			try
+			{			
+				String[] commands = command.split( "\\s" );
+				int x = Integer.parseInt( commands[1] );
+				int y = Integer.parseInt( commands[2] );
+				retCommand = new GotoCommand( x, y );
+			}
+			catch( NumberFormatException e )
+			{
+				retCommand = new StringCommand( Command.INVALID_COMMAND,
+				"The coordinates you entered are invalid." );
+			}
+		}
+		else if( waresPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.LIST_WARES );
+		}
+		else if( buyPattern.matcher( command ).matches() )
+		{	
+			try
+			{
+			 	String[] data = command.split( "\\s" );
+				String id = data[1];
+				int amount = Integer.parseInt( data[2] );
+				
+				if( data[0].equals( "buy" ) )
+					retCommand = new StringIntCommand( Command.BUY, amount, id );
+				else
+					retCommand = new StringIntCommand( Command.SELL, amount, id );
+			}
+			catch( NumberFormatException e )
+			{
+				retCommand = new StringCommand( Command.INVALID_COMMAND, 
+				"The numbers you entered are invalid." );
+			}
+		}
+		else if( invPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.INVENTORY );
+		}
+		else if( sendPattern.matcher( command ).matches() )
+		{
+			String[] values = command.split( "\\s" );
+			String name = values[1].trim();
+			StringBuffer theMessage = new StringBuffer();
+			for( int i = 2; i < values.length; i++ )
+				theMessage.append( values[i] + " " );
+			retCommand = new SendCommand( name, theMessage.toString().trim() );				
+		}
+		else if( playerPattern.matcher( command ).matches() )
+		{
+			String[] values = command.split( "\\s" );
+			int commType = -1;			
+			
+			if( values[0].equals( "add" ) )
+				commType = Command.ADD;			
+			else if( values[0].equals( "lookup" ) )
+				commType = Command.LOOKUP;
+				 
+			retCommand = new StringCommand( commType, values[1] );
+		}
+		else if( checkPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.CHECK_FRIENDS );
+		}
+		else if( llistPattern.matcher( command ).matches() )
+		{
+			retCommand = new IntCommand( Command.LLIST, -1 );
+		}
+		else if( lsendPattern.matcher( command ).matches() )
+		{
+			try
+			{
+				String[] values = command.split( "\\s" );
+				int index = Integer.parseInt( values[1] );
+				StringBuffer message = new StringBuffer();
+				for( int i = 2; i < values.length; i++ )
+					message.append( values[i] );
+				retCommand = new SendCommand( index, message.toString() );
+			}
+			catch( NumberFormatException e )
+			{
+				retCommand = new StringCommand( Command.INVALID_COMMAND, "That index is not valid" );
+			}
+		}
+		else if( lcheckAddPattern.matcher( command ).matches() )
+		{
+			try
+			{
+				String[] values = command.split( "\\s" );
+				int commType = -1;
+				int index = Integer.parseInt( values[1] );
+				
+				if( values[0].equals( "enterhouse" ) )
+					retCommand = new IntCommand( Command.HOUSE_ENTER, index );
+				else
+				{
+					if( values[0].equals( "ladd" ) )
+						commType = Command.LADD;
+					else if( values[0].equals( "lcheck" ) )
+						commType = Command.LCHECK;					
+					retCommand = new IntCommand( commType, index );
+				}
+			}
+			catch( NumberFormatException e )
+			{
+				retCommand = new StringCommand( Command.INVALID_COMMAND, "That index is not valid." );
+			}
+		}
+		else if( removePattern.matcher( command ).matches() )
+		{
+			try
+			{
+				String[] values = command.split( "\\s" );
+				int index = Integer.parseInt( values[1] );
+				retCommand = new IntCommand( Command.REMOVE, index );
+			}
+			catch( NumberFormatException e )
+			{
+				retCommand = new StringCommand( Command.INVALID_COMMAND, "That index is invalid." );
+			}
+		}
+		else if( equipPattern.matcher( command ).matches() )
+		{
+			String[] data = command.split( "\\s" );
+			retCommand = new StringCommand( Command.EQUIP, data[1] );
+		}
+		else if( attackPattern.matcher( command ).matches() )
+		{
+			int i = command.indexOf( " " );
+			int atkType = -1;
+			
+			String atk = command.substring( 0, i ).trim();
+			if( atk.equals( "slash" ) || atk.equals( "sl" ) )
+				atkType = StringIntCommand.SLASH;
+			else if( atk.equals( "thrust" ) || atk.equals( "th" ) )
+				atkType = StringIntCommand.THRUST;
+			else if( atk.equals( "kick" ) || atk.equals( "ki" ) )
+				atkType = StringIntCommand.KICK;
+			else if( atk.equals( "punch" ) || atk.equals( "pu" ) )
+				atkType = StringIntCommand.PUNCH;
+			
+			String name = command.substring( i, command.length() ).trim();
+			retCommand = new StringIntCommand( Command.ATTACK, atkType, name );
+		
+		}
+		else if( attackNoTargetPattern.matcher( command ).matches() )
+		{
+			int atkType = -1;
+			String atk = command;
+			if( atk.equals( "slash" ) || atk.equals( "sl" ) )
+				atkType = StringIntCommand.SLASH;
+			else if( atk.equals( "thrust" ) || atk.equals( "th" ) )
+				atkType = StringIntCommand.THRUST;
+			else if( atk.equals( "kick" ) || atk.equals( "ki" ) )
+				atkType = StringIntCommand.KICK;
+			else if( atk.equals( "punch" ) || atk.equals( "pu" ) )
+				atkType = StringIntCommand.PUNCH;
+			retCommand = new IntCommand( Command.ATTACK_NO_TARG, atkType );
+		}
+		else if( challengePattern.matcher( command ).matches() )		
+		{
+			String[] data = command.split( "\\s" );
+			String pName = data[1];
+			retCommand = new StringCommand( Command.CHALLENGE, pName );
+		}
+		else if( acceptPattern.matcher( command ).matches() )
+		{
+
+			if( command.equals( "accept" ) )
+				retCommand = new Command( Command.ACCEPT );
+			else 
+				retCommand = new Command( Command.DECLINE );		
+		}
+		else if( mapPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.MAP );
+		}
+		else if( loadPattern.matcher( command ).matches() )
+		{
+			String[] values = command.split( "\\s" );
+			int which = -1;
+			if( values[1].equals( "player" ) )
+				which = StringIntCommand.PLAYER;
+			else if( values[1].equals( "map" ) )
+				which = StringIntCommand.MAP;
+			else
+				which = StringIntCommand.WORLD;
+			retCommand = new StringIntCommand( Command.LOAD, which, values[2] );
+			
+		}
+		else if( savePattern.matcher( command ).matches() )
+		{
+			String[] values = command.split( "\\s" );
+			int which = -1;
+			if( values[1].equals( "player" ) )
+				which = StringIntCommand.PLAYER;
+			else if( values[1].equals( "map" ) )
+				which = StringIntCommand.MAP;
+			else
+				which = StringIntCommand.WORLD;
+			retCommand = new StringIntCommand( Command.SAVE, which, values[2] );
+		}
+		else if( removeSPattern.matcher( command ).matches() )
+		{
+			String[] values = command.split( "\\s" );
+			int houseNum = 0;
+			if( values[1].equals( "pond" ) )
+				houseNum = -1;
+			else if( values[1].equals( "house" ) )
+				houseNum = Integer.parseInt( values[2] );
+			retCommand = new IntCommand( Command.STATE_REMOVE, houseNum );
+		}
+		else if( saveQPattern.matcher( command ).matches() )
+		{
+			retCommand = new Command( Command.SAVE_QUICK );
+		}
+		else if( usePattern.matcher( command ).matches() )
+		{
+			String[] data = command.split( "\\s" );			
+			retCommand = new StringCommand( Command.USE, data[1] ); 
+		}
+		else if( partitionPattern.matcher( command ).matches() )
+		{
+			String[] data = command.split( "\\s" );
+			int partNum = Integer.parseInt( data[2] );
+			retCommand = new IntCommand( Command.PARTITION, partNum );
+		}
+		else if( houseEnterPattern.matcher( command ).matches() )
+		{
+			String[] data = command.split( "\\s" );			
+			retCommand = new IntCommand( Command.ENTER, Integer.parseInt( data[2] ) );
+		}
+		else if( castNoTargPattern.matcher( command ).matches() )
+		{
+			String[] data = command.split( "\\s" );
+			retCommand = new StringCommand( Command.CAST_NO_TARG, data[1] );
+		}
+		else if( castPattern.matcher( command ).matches() )
+		{
+			String[] data = command.split( "\\s" );
+			retCommand = new CastCommand( data[1], data[2] );
+		}
+		else if( leaveHousePattern.matcher( command ).matches() )
+		{			
+			retCommand = new Command( Command.LEAVE_HOUSE );
+		}
+		else
+		{
+			retCommand = new StringCommand( Command.INVALID_COMMAND, command );
+		}
+		return retCommand;
+	}
+	
+		
+}
+@
+
+
+1.13
+log
+@Added the command to leave and enter a house.
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.12 2004/09/17 03:42:56 rjw2183 Exp rjw2183 $
+d80 1
+a80 1
+		houseCreationPattern = Pattern.compile( "createhouse (true|false) .*" );
+d109 1
+a109 1
+		leavePattern = Pattern.compile( "leave house" );
+d192 1
+a192 2
+			String[] values = command.split( "\\s" );
+			boolean access = values[1].equals( "true" );
+d194 1
+a194 1
+			for( int i = 2; i < values.length; i++ )
+d196 1
+a196 1
+			retCommand = new HouseCreationCommand( houseDesc.toString().trim(), access );		
+d451 1
+a451 1
+		{
+@
+
+
+1.12
+log
+@Added the cast command.
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.11 2004/09/16 03:09:15 rjw2183 Exp rjw2183 $
+d63 1
+d107 3
+a109 2
+		castPattern = Pattern.compile( "cast \\d+ \\d+" );
+		castNoTargPattern = Pattern.compile( "cast \\d+" );
+d196 2
+a197 2
+				houseDesc.append( values[i] );
+			retCommand = new HouseCreationCommand( houseDesc.toString(), access );		
+d451 4
+@
+
+
+1.11
+log
+@Added the house enter command.
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.10 2004/08/17 17:53:11 rjw2183 Exp rjw2183 $
+d61 2
+d106 2
+d436 10
+d447 1
+a447 2
+			int houseNum = Integer.parseInt( data[2] );
+			retCommand = new IntCommand( Command.ENTER, houseNum );
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.9 2004/07/22 19:34:08 rjw2183 Exp rjw2183 $
+d60 1
+d103 1
+d430 6
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.8 2004/07/16 18:36:21 rjw2183 Exp rjw2183 $
+d69 1
+a69 1
+		createPattern = Pattern.compile( "create (male|female) \\w+ (mage|fighter)" );
+d150 2
+a151 2
+			String name;
+			int sex, clas;
+d158 1
+a158 5
+			if( data[3].equals( "mage" ) )
+				clas = PlayerCharacter.MAGE;
+			else
+				clas = PlayerCharacter.FIGHTER;
+			
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.7 2004/07/06 19:59:40 rjw2183 Exp rjw2183 $
+d59 1
+d101 1
+d426 1
+a426 1
+		else		
+d428 6
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.6 2004/06/29 20:00:14 rjw2183 Exp rjw2183 $
+d55 4
+d96 4
+d393 1
+a393 1
+		else
+d395 31
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.5 2004/06/24 17:54:26 rjw2183 Exp rjw2183 $
+d91 1
+a91 1
+		loadPattern = Pattern.compile( "load \\w+" );
+d375 9
+a383 1
+			retCommand = new StringCommand( Command.LOAD, values[1] );
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.4 2004/06/16 19:59:10 rjw2183 Exp rjw2183 $
+d54 1
+d91 1
+d372 5
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.3 2004/06/15 19:52:11 rjw2183 Exp rjw2183 $
+d53 1
+d82 1
+a82 1
+		lcheckAddPattern = Pattern.compile( "(ladd|lcheck|enterhouse) \\d+" );
+d89 1
+d366 4
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.2 2004/06/11 19:16:36 rjw2183 Exp rjw2183 $
+d50 3
+d85 3
+d336 28
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.1 2004/06/10 17:12:47 rjw2183 Exp rjw2183 $
+d81 1
+a81 1
+		attackPattern = Pattern.compile( "(punch|kick|slash|thrust) .*" );
+d317 8
+a324 8
+			if( atk.equals( "slash" ) )
+				atkType = StringCommand.SLASH;
+			else if( atk.equals( "thrust" ) )
+				atkType = StringCommand.THRUST;
+			else if( atk.equals( "kick" ) )
+				atkType = StringCommand.KICK;
+			else if( atk.equals( "punch" ) )
+				atkType = StringCommand.PUNCH;
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d7 1
+a7 1
+ * @@file: $Id: Parser.java,v 1.21 2004/06/09 19:51:37 rjw2183 Exp rjw2183 $
+d210 1
+a210 1
+					retCommand = new StringIntCommand( StringIntCommand.BUY, amount, id );
+d212 1
+a212 1
+					retCommand = new StringIntCommand( StringIntCommand.SELL, amount, id );
+@

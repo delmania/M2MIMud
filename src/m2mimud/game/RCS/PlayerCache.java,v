@@ -1,0 +1,882 @@
+head	1.13;
+access;
+symbols;
+locks
+	rjw2183:1.13; strict;
+comment	@# @;
+
+
+1.13
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.12.16.16.39.44;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.12.14.17.22.47;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.12.10.02.29.05;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.10.21.02.47.38;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.09.24.03.43.04;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.08.16.18.30.30;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.08.12.01.21.11;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.08.11.20.06.44;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.07.22.19.33.44;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.07.16.18.35.57;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.29.20.00.18;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The player cache contains a listing of all the player characters
+ * that are currently present in the game as well the unihandle to the
+ * game unit which controls.  It's primary function is to inform its listener
+ * that a player has timed out, which means that no explicit action has been
+ * taken by that unit for 10 minutes. (Notes: SessionAd broadcasts do
+ * cause a player's timer to be reset.
+ *
+ * @@author: Robert Whitcomb
+ * @@files: $Id: PlayerCache.java,v 1.12 2004/12/16 16:39:44 rjw2183 Exp rjw2183 $
+ */
+ 
+ package m2mimud.game;
+ 
+ import java.util.Random;
+ import java.util.HashMap;
+ import java.util.Vector;
+ import java.util.Iterator;
+ import edu.rit.util.Timer;
+ import edu.rit.util.TimerTask;
+ import edu.rit.util.TimerThread;
+ import edu.rit.m2mi.Eoid;
+ import m2mimud.communications.Game;
+ import m2mimud.state.PlayerCharacter;
+ import java.io.*;
+
+ 
+ public class PlayerCache
+ implements Externalizable
+ {
+ 	// the cache which holds the character data
+	private HashMap players;
+	private HashMap timers;
+	private int myPartNum;
+	// 10 minutes
+	private final int TEN_MINUTES = 60000;
+	
+	// 30 seconds - used to mix up when the timeout happens to reduce
+	// netowrk traffic at a given moment in time
+	private final int THIRTY_SECONDS = 10000;
+	
+	// A PRNG used to minimize the chance that two characters will timeout at exactly the same time
+	private Random timerPRNG;
+
+	// the object that listens for player timeouts
+	private PlayerCacheListener myList;
+	
+	// Private class which informs when a player has timed out.	
+	private class LeaseTimerTask
+	implements TimerTask
+	{
+		private Eoid myId;
+		
+		public LeaseTimerTask( Eoid id )
+		{
+			myId = id;
+		}
+		
+		public void action( Timer theTimer )
+		{
+			playerTimeout( theTimer, myId );
+		}
+		
+	}
+	
+	// Informs the session that the player has timed out	
+	private synchronized void playerTimeout( Timer theTimer, Eoid playerId )
+	{
+		if( theTimer.isTriggered() && myList != null )
+		{
+			myList.playerTimeout( playerId );
+		}
+	}
+	
+       /**
+        * The constructor
+	* @@param theListener the listener for this object which wis informed when a player timesout
+	*/
+	public PlayerCache( PlayerCacheListener theListener )
+	{		
+		players = new HashMap();
+		timers = new HashMap();
+		timerPRNG = new Random();
+		myPartNum = 0;		
+		myList = theListener;
+	}
+	
+	/**
+	 * Default constructor
+	 */
+	public PlayerCache()
+	{		
+		players = new HashMap();
+		timers = new HashMap();
+		timerPRNG = new Random();
+		myPartNum = 0;		
+	}
+	
+	/**
+	 * Adds a character to the cache.
+	 * @@param: player The player to add.
+	 * @@param: playerHandle Unihandle to the game unit which controls the player
+	 */
+	public synchronized void addPlayer( PlayerCharacter player )
+	{		
+                Timer leaseTimer = TimerThread.getDefault().createTimer
+				  ( new LeaseTimerTask( player.getId() ) );						
+		if( !timers.containsKey( player.getId() ) )
+                {
+                    leaseTimer.start( TEN_MINUTES + timerPRNG.nextInt( THIRTY_SECONDS ) );                    
+                    timers.put( player.getId(), leaseTimer );
+                }
+                players.put( player.getId(), player );
+	}
+ 
+ 	/**
+	 * Removes a player
+	 * @@param: handle The unihandle to the game unit which controls this player
+	 */
+	public synchronized void removePlayer( Eoid playerId )
+	{
+		players.remove( playerId );
+		Timer theTimer = (Timer)timers.remove( playerId );
+                theTimer.stop();
+	}
+	
+	/**
+	 * Refreshes a player's timer
+	 * @@param handle The handle of the player to refresh
+	 */
+	public synchronized void refreshTimer( Eoid playerId  )
+	{
+		Timer leaseTimer = (Timer)timers.get( playerId );
+		if( leaseTimer != null )					
+                {                   
+                    PlayerCharacter pChar = (PlayerCharacter)players.get(playerId );		
+                    leaseTimer.start( TEN_MINUTES + timerPRNG.nextInt( THIRTY_SECONDS ) );					
+                }
+	}
+	 
+	/**
+	 * Returns a player's data
+	 * @@param: handle The handle of the player data to return
+	 */
+	public synchronized PlayerCharacter getPlayer( Eoid playerId )
+	{	 	
+		PlayerCharacter temp = (PlayerCharacter)players.get( playerId );
+		return temp;
+	}
+	
+	/** 
+	 * This sets up the player cache's listener
+	 * @@param pcList The listener
+	 */
+	public void setListener( PlayerCacheListener pcList )
+	{
+		myList = pcList;
+	}
+	
+	/**
+	 * Clears out the player cache
+	 */
+	public void purge()
+	{
+	 	players.clear();
+		timers.clear();			
+	}
+	
+	/**
+	 * Returns the data in this cache in form which cans
+	 * be transferred to others using M2MI
+	 */
+	public synchronized Iterator getPlayers()
+	{
+		return  players.values().iterator();		
+	}
+	
+	/** 
+	 * This adds the characters from one cache to another that
+	 * do not exist in this cache
+	 * @@param: other The cache
+	 */
+	public void appendPlayers( PlayerCache other )
+	{
+		Iterator thePlayers = other.getPlayers();
+		while( thePlayers.hasNext() )
+		{
+			PlayerCharacter thePlayer = (PlayerCharacter)thePlayers.next();
+			if( !players.containsKey( thePlayer.getId() ) )
+				addPlayer( thePlayer );
+		}
+	}						
+	 
+	/**
+	 * Determines how many characters have the given name
+	 * @@param name The name to look up
+	 */
+	public int getNameCount( String name )
+	{
+		int retVal = 0;
+		Iterator temp = players.values().iterator();
+		while( temp.hasNext() )
+		{
+			PlayerCharacter tempPlayer = (PlayerCharacter)temp.next();			
+			if( tempPlayer.getName().equals( name ) )
+				retVal++;
+		}
+		return retVal;
+	}
+	
+	/**
+	 * Return the first instance of a character with the given 
+	 * name.
+	 * @@param name The name to lookup
+	 */
+	public PlayerCharacter lookupByName( String name )
+	{
+		PlayerCharacter retVal = null;
+		boolean found = false;
+		Iterator temp = players.values().iterator();
+		while( temp.hasNext() && !found )
+		{
+			PlayerCharacter tempPlayer = (PlayerCharacter)temp.next();
+			if( tempPlayer.getName().equals( name ) )
+			{
+				retVal = tempPlayer;
+				found = true;
+			}
+		}
+		return retVal;
+	}
+	
+	/**
+	 * Returns whether to not the cache has this player
+	 * @@param player The playercharacter to check
+	 */ 
+	public boolean checkPlayer( PlayerCharacter player  )
+	{
+		return players.containsKey( player.getId() );
+	}
+	
+	/**
+	 * Returns whether or not this key is valid.
+	 * @@param key The key
+	 */
+	 public boolean validKey( Eoid key )
+	 {
+	 	return players.containsKey( key ) && players.get( key ) != null;
+	 }
+	 
+	
+	/** 
+	 * Performs a lookup on the given name.  This takes all the ids of the
+	 * characters with the given name and places them into the vector.  Note that
+	 * the vector is cleared before any prcessing is done.
+	 * @@param name The name to perform the lookup on
+	 * @@param lookupVector The vector to store the results in
+	 */
+	public void performLookup( String name, Vector lookupVector )	
+	{
+		lookupVector.clear();
+		Iterator keys = players.keySet().iterator();
+		while( keys.hasNext() )
+		{
+			Eoid tempKey = (Eoid)keys.next();
+			PlayerCharacter tempPlayer = (PlayerCharacter)players.get( tempKey );
+			if( name.equals( tempPlayer.getName() ) )
+				lookupVector.add( tempKey );
+		}
+	}
+	     
+	/**
+	 * Determines if the other object is equal to the current one.
+	 * @@param: other The object to compare to.
+	 */
+	public boolean equals( Object other )
+	{
+		boolean retVal = false;
+		if( other != null && other.getClass().equals( PlayerCache.class ) )
+			retVal = players.equals( ((PlayerCache)other).players );
+		return retVal;
+	}
+	
+	
+	/**
+	 * Returns the number of players in the game
+	 */
+	public int numPlayers()
+	{
+		return players.size();
+	}
+	
+	
+	/**
+	 * Returns a string representation of this object, which contains the information
+	 * about all the players currently in the cache.
+	 */
+	public String toString()
+	{
+		Iterator temp = players.values().iterator();
+		StringBuffer retVal = new StringBuffer();
+		while( temp.hasNext() )
+		{
+			PlayerCharacter thePlayer = (PlayerCharacter)temp.next();
+			retVal.append( thePlayer + "\n" );
+			if( temp.hasNext() )
+				retVal.append( "\n" );
+		}	
+		return retVal.toString();
+	}
+	
+	/**
+	 * Writes this object to output
+	 * @@param out The object to write to
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+		int numCharacters = players.size();
+		Iterator thePlayers = players.values().iterator();
+		out.writeInt( myPartNum );
+		out.writeObject( players );		
+	}
+	
+	/** 
+	 * Reads the object in from input
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{
+		myPartNum = in.readInt();
+		players = (HashMap)in.readObject();
+	}
+}
+	  
+ 
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.11 2004/12/14 17:22:47 rjw2183 Exp rjw2183 $
+d88 3
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.10 2004/12/10 02:29:05 rjw2183 Exp rjw2183 $
+d36 1
+a36 1
+	private final int TEN_MINUTES = 300000;
+d40 1
+a40 1
+	private final int THIRTY_SECONDS = 30000;
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.9 2004/10/21 02:47:38 rjw2183 Exp $
+a280 37
+        /**
+         * This function determines if the other player cache has the same
+         * state data for the characters it holds in it.  The state data for
+         * the character means that it has the same key, is at the same location
+         * and is roughly doing the same thing as the other (in a house or
+         * fighting something).
+         * @@param other The other playercache object to check
+         */
+        public boolean checkStateData( PlayerCache other )
+        {
+            boolean retVal = true;
+            Iterator myKeys = players.keySet().iterator();
+            while( myKeys.hasNext() )
+            {
+                Eoid currentKey = (Eoid)myKeys.next();
+                PlayerCharacter myPlayer = getPlayer( currentKey );
+                PlayerCharacter otherPlayer = other.getPlayer( currentKey );
+                if( otherPlayer == null || 
+                    myPlayer.checkStateData( otherPlayer ) == false )
+                    retVal = false;               
+            }            
+	    
+            /**
+             * This is a secondary check to make sure that this playercache 
+             * has all the players the other one does
+             */
+            if( retVal == true )
+            {
+                myKeys = other.players.keySet().iterator();
+                while( myKeys.hasNext() )
+                {
+                    if( !players.containsKey( myKeys.next() ))
+                        retVal = false;
+                }
+            }
+            return retVal;     
+	}
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.8 2004/09/24 03:43:04 rjw2183 Exp rjw2183 $
+d36 1
+a36 1
+	private final int TEN_MINUTES = 600000;
+d69 2
+a70 1
+		if( theTimer.isTriggered() && ( myList != null ) )
+d72 1
+d102 9
+a110 6
+	{
+		Timer leaseTimer = leaseTimer = TimerThread.getDefault().createTimer
+				  ( new LeaseTimerTask( player.getId() ) );				
+		leaseTimer.start( TEN_MINUTES + timerPRNG.nextInt( THIRTY_SECONDS ) );
+		timers.put( player.getId(), leaseTimer );
+		players.put( player.getId(), player );
+d120 2
+a121 1
+		timers.remove( playerId );
+d132 4
+a135 1
+			leaseTimer.start( TEN_MINUTES + timerPRNG.nextInt( THIRTY_SECONDS ) );					
+d148 4
+d316 3
+a318 1
+            return retVal;        }
+d356 1
+a356 3
+		out.writeInt( numCharacters );
+		while( thePlayers.hasNext() )
+			out.writeObject( (PlayerCharacter)thePlayers.next() );
+d366 1
+a366 6
+		int numCharacters = in.readInt();
+		for( int i = 0; i < numCharacters; i++ )
+		{
+			PlayerCharacter temp = (PlayerCharacter)in.readObject();
+			addPlayer( temp );
+		}
+@
+
+
+1.8
+log
+@Removed a n unnded function,
+,
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.7 2004/08/16 18:30:30 rjw2183 Exp rjw2183 $
+d176 1
+a176 3
+	}
+			
+			
+d268 36
+a330 1
+	
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.6 2004/08/12 01:21:11 rjw2183 Exp rjw2183 $
+a297 17
+	
+	/**
+	 * The merge function takes all the players in the other cache and adds them to 
+	 * this cache
+	 * @@param: cache The other cache.
+	 */
+	public void merge( PlayerCache other )
+	{
+		Iterator otherPlayers = other.players.values().iterator();
+		while( otherPlayers.hasNext() )
+		{
+			PlayerCharacter temp = (PlayerCharacter)otherPlayers.next();
+			if( !checkPlayer( temp ) )
+				addPlayer( temp );
+		}		
+	}
+	
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.5 2004/08/11 20:06:44 rjw2183 Exp $
+a105 2
+		if( !players.isEmpty() )
+		System.out.println( "Adding " + player.getName() );
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.4 2004/07/22 19:33:44 rjw2183 Exp rjw2183 $
+a103 1
+
+d106 2
+d152 1
+a152 1
+		timers.clear();		
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.3 2004/07/16 18:35:57 rjw2183 Exp rjw2183 $
+d34 1
+a34 2
+	
+	// 1000 milliseconds = 1 second, so 300000/1000 = 300 seconds 300/60 = 5 minutes
+d36 1
+a36 1
+	private final int FIVE_MINUTES = 300000;
+d38 3
+a40 2
+	// 30 seconds
+	private final int TEN_SECONDS = 10000;
+d45 3
+a47 3
+	// multihandle to the session this cache is watching
+	private Game mySession;
+
+d69 2
+a70 2
+		if( theTimer.isTriggered() && ( playerId != null && mySession != null ) )
+			mySession.notifyPlayerTimeout( playerId );
+d77 2
+a78 3
+	public PlayerCache()
+	{
+		mySession = null;
+d81 3
+a83 1
+		timerPRNG = new Random();		
+d86 6
+a91 7
+	/**
+	 * Sets the session handle.
+	 * @@param: theSession Multihandle to all the games in the session.
+	 */	 
+	public void setSession( Game theSession )
+	{	
+		mySession = theSession;
+d103 1
+a103 1
+		leaseTimer.start( FIVE_MINUTES + timerPRNG.nextInt( TEN_SECONDS ) );
+d126 2
+a127 1
+		leaseTimer.start( FIVE_MINUTES + timerPRNG.nextInt( TEN_SECONDS ) );
+d140 5
+d151 1
+a151 2
+		timers.clear();
+		mySession = null;
+d258 1
+a258 1
+	
+d325 1
+d337 1
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.2 2004/06/29 20:00:18 rjw2183 Exp rjw2183 $
+d35 1
+a35 1
+	// 1000 milliseconds = 1 second, so 60000 = 60 seconds, so 600000 = 600 seconds, or
+d37 1
+a37 1
+	private final int TEN_MINUTES = 600000;
+d40 1
+a40 1
+	private final int THIRTY_SECONDS = 30000;
+d103 1
+a103 1
+		leaseTimer.start( TEN_MINUTES + timerPRNG.nextInt( THIRTY_SECONDS ) );
+d126 1
+a126 1
+		leaseTimer.start( TEN_MINUTES + timerPRNG.nextInt( THIRTY_SECONDS ) );
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.1 2004/06/10 18:22:40 rjw2183 Exp rjw2183 $
+a93 17
+	/** 
+	 * Returns an string which is a listing of all the characters in the session
+	 */
+	public synchronized String getCharacters()
+	{	
+		Iterator temp = players.values().iterator();
+		StringBuffer retVal = new StringBuffer();
+		while( temp.hasNext() )
+		{
+			PlayerCharacter thePlayer = (PlayerCharacter)temp.next();
+			retVal.append( thePlayer + "\n" );
+			if( temp.hasNext() )
+				retVal.append( "\n" );
+		}	
+		return retVal.toString();
+	}
+	
+d99 1
+a99 1
+	public synchronized void addCharacter( PlayerCharacter player )
+d138 1
+a138 1
+
+d170 1
+a170 1
+				addCharacter( thePlayer );
+d214 6
+a219 2
+	 
+	public boolean checkPlayer( Eoid id )
+d221 1
+a221 1
+		return players.containsKey( id );
+d224 9
+d261 3
+a263 18
+		if( this.getClass().isInstance( other ) )
+		{
+			PlayerCache otherCache = (PlayerCache)other;
+			boolean equal = true;
+
+			/* First check to make sure that every player in this
+			 * cache is in the other.
+			 */			
+			equal = checkPlayers( this, otherCache );
+
+			/* Every player in this cache is in the other one at the specified
+			 * handle, now check to make sure all the other cache's players
+			 * are in this cache
+			 */
+			if( equal )
+				equal = checkPlayers( otherCache, this );			
+		}
+		return retVal;		
+d274 6
+a279 1
+	private boolean checkPlayers( PlayerCache keyCache, PlayerCache otherCache )
+d281 3
+a283 3
+		boolean retVal = true;
+		Iterator keys = keyCache.players.keySet().iterator();
+		while( keys.hasNext() && retVal == true )
+d285 6
+a290 6
+			Eoid temp = (Eoid)keys.next();
+			PlayerCharacter keyPlayer = (PlayerCharacter)keyCache.players.get( temp );
+			PlayerCharacter otherPlayer = (PlayerCharacter)otherCache.players.get( temp );
+			retVal = keyPlayer.equals( otherPlayer );
+		}
+		return retVal;
+d293 2
+d296 16
+d335 1
+a335 1
+			addCharacter( temp );
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d10 1
+a10 1
+ * @@files: $Id: PlayerCache.java,v 1.3 2004/05/07 14:29:33 rjw2183 Exp rjw2183 $
+d25 1
+d29 1
+d170 1
+a170 1
+	public synchronized Vector getTransferData()
+d172 1
+a172 1
+		return new Vector( players.values() );		
+d174 5
+a178 7
+	 
+	/**
+	 * Taking in the vector from getTransferData, this function
+	 * proceeds to process that list and builds the character data using this list
+	 *
+	 * @@param: charData The hashmap which contains all the data about characters and their
+	 * owners.
+d180 4
+a183 4
+	public void processTransferData( Vector charData )
+	{	
+		Iterator temp = charData.iterator();
+		while( temp.hasNext() )		
+d185 3
+a187 2
+			PlayerCharacter tempChar = (PlayerCharacter)temp.next();			
+			addCharacter( tempChar );			
+a188 1
+		
+d190 3
+a192 1
+	
+a235 32
+	/**
+	 * Checks to make sure that every character in the given vector
+	 * is in the player cache, and that every player in the cache is in the
+	 * the given vector.
+	 * @@param: charData The vector to check
+	 */
+	public boolean checkTransferData( Vector charData )
+	{
+		Iterator checkIter = charData.iterator();
+		boolean equal = true;
+		
+		// Check to make sure every character in the vector is in the cache.
+		while( checkIter.hasNext() && equal == true )
+		{
+			PlayerCharacter temp = (PlayerCharacter)checkIter.next();
+			PlayerCharacter lookup = (PlayerCharacter)players.get( temp.getId() );
+			equal = temp.equals( lookup );		
+		}
+		
+		// Now make sure every character in the cache is in the vector
+		checkIter = players.keySet().iterator();
+		while( checkIter.hasNext() && equal == true )
+		{
+			Eoid tempId = (Eoid)checkIter.next();
+			PlayerCharacter tempPlayer = (PlayerCharacter)players.get( tempId );			
+			if( charData.indexOf( tempPlayer ) == -1 )
+				equal = false;
+			else 
+				equal = true;		
+		}
+		return equal;
+	}
+d237 1
+d306 28
+@

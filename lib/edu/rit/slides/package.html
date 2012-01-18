@@ -1,0 +1,324 @@
+<HTML>
+<HEAD>
+<TITLE>Package edu.rit.slides</TITLE>
+</HEAD>
+<BODY>
+
+Package edu.rit.slides
+contains Slides,
+a service and collaborative application
+based on Many-to-Many Invocation (M2MI).
+
+<P>
+<HR>
+<H2>Table of Contents</H2>
+
+1. <A HREF="#overview">Overview</A>
+<BR>2. <A HREF="#running">Running the Slides Application</A>
+<BR>3. <A HREF="#creating">Creating a Slide Show</A>
+
+<P>
+<HR>
+<A NAME="overview"><H2>1. Overview</H2></A>
+
+<P>
+The two key remote interfaces in Slides
+are interface <A HREF="Screen.html">Screen</A>
+and interface <A HREF="Projector.html">Projector</A>.
+
+<P>
+A <B>screen</B> is an object
+that displays slides on some medium.
+For example,
+a digital projector in a classroom or auditorium
+might provide a permanent screen service
+for displaying slides at the front of the room.
+For another example,
+an individual's mobile computing device,
+like a PDA, laptop PC, or tablet PC,
+might provide a screen service
+for displaying slides on the device's screen.
+
+<P>
+A <B>projector</B> is an object
+that provides slides for a screen to display.
+A projector object advertises
+the slides it has available.
+A screen object obtains slides from the projector object.
+By providing a projector object,
+discovering one or more screen objects,
+and telling the screen object(s)
+to display a sequence of slides,
+a client application can make a slide show appear
+on the screen objects.
+
+<P>
+A <B>theatre</B> is a group of screen objects and projector objects
+that are collaborating to do a slide presentation.
+Each theatre has a name.
+The screen objects in a theatre
+display the slides
+from the projector objects in the theatre.
+Different theatres with different names
+display separate slide presentations.
+
+<P>
+Here is a typical setup.
+A classroom has a permanent screen service (object)
+driving a (physical) digital projector
+and attached to a wireless network.
+A professor comes to class
+with a wireless tablet PC
+that has a client application
+with a projector object and a bunch of slides.
+As the professor taps the tablet PC's display,
+the client application uses M2MI
+to send the slides to the screen service
+and display the slides one by one
+at the front of the room.
+Simultaneously, students can run screen services on their laptop PCs
+and see the same slide presentation up close
+on their laptop screens.
+
+<P>
+Better still,
+a screen object can display multiple slides at once --
+just like putting multiple transparencies
+on an old-fashioned overhead projector.
+In this way, multiple slide projectors can collaborate
+to produce a combined slide presentation.
+The pieces of the overall slide presentation
+don't have to be integrated together ahead of time,
+and the devices with the slide projectors
+don't have to know about each other ahead of time.
+The multiple slide projectors and screen services
+automatically form an ad hoc collaborative application
+where the slides from all the slide projectors
+are displayed on all the screen services.
+
+<P>
+<HR>
+<A NAME="running"><H2>2. Running the Slides Application</H2></A>
+
+<P>
+To run the Slides application,
+do the following steps on each participating machine.
+There must be at least one machine
+running an instance of the Slide Screen
+and at least one machine
+running an instance of the Slide Projector.
+
+<OL TYPE=1>
+
+<LI>
+Configure the M2MI Layer.
+See package <A HREF="../m2mi/package-summary.html">edu.rit.m2mi</A>
+and class <A HREF="../m2mi/M2MIProperties.html">M2MIProperties</A>
+for further information.
+<BR>&nbsp;
+
+<LI>
+Configure the M2MP Layer
+and run the M2MP Daemon in a separate process.
+See package <A HREF="../m2mp/package-summary.html">edu.rit.m2mp</A>,
+class <A HREF="../m2mp/M2MPProperties.html">M2MPProperties</A>,
+and class <A HREF="../m2mp/Daemon.html">Daemon</A>
+for further information.
+<BR>&nbsp;
+
+<LI>
+Run an instance of the Slide Screen
+by typing this command
+in a separate process:
+<BR>&nbsp;
+<BR><TT>&nbsp;&nbsp;&nbsp;&nbsp;java edu.rit.slides.SlideScreen</TT>
+<BR>&nbsp;
+<BR>The application displays a window:
+<BR>&nbsp;
+<CENTER>
+<IMG SRC="doc-files/slidescreen1.png">
+</CENTER>
+<BR>&nbsp;
+
+<LI>
+The Slide Screen automatically discovers
+all existing theatres
+and displays them in the list at the right.
+To make the Slide Screen join one of the existing theatres,
+click on the theatre name in the theatre list.
+To make the Slide Screen create and join a new theatre,
+click the "New Theatre..." button.
+To make the Slide Screen not part of any theatre,
+click "&lt;none&gt;" in the theatre list.
+<BR>&nbsp;
+
+<LI>
+The slide or slides being projected
+by the Slide Projectors in the theatre
+are displayed in the large area
+at the left.
+If no slides are being projected,
+or if the Slide Screen is not part of a theatre,
+this area is black.
+To show the slides on the full screen,
+click the "Slide Show" button.
+To return to the Slide Show window display,
+click the mouse button.
+<BR>&nbsp;
+
+<LI>
+Run an instance of the Slide Projector
+by typing this command
+in a separate process:
+<BR>&nbsp;
+<BR><TT>&nbsp;&nbsp;&nbsp;&nbsp;java edu.rit.slides.SlideProjector</TT>
+<BR>&nbsp;
+<BR>The application displays a window:
+<BR>&nbsp;
+<CENTER>
+<IMG SRC="doc-files/slideprojector1.png">
+</CENTER>
+<BR>&nbsp;
+
+<LI>
+The Slide Projector automatically discovers
+all existing theatres
+and displays them in the list at the right.
+To make the Slide Projector join one of the existing theatres,
+click on the theatre name in the theatre list.
+To make the Slide Projector create and join a new theatre,
+click the "New Theatre..." button.
+To make the Slide Projector not part of any theatre,
+click "&lt;none&gt;" in the theatre list.
+<BR>&nbsp;
+
+<LI>
+Click the "Open..." button
+to open a slide show.
+In the file dialog,
+select the file that contains the desired slide show.
+The slide show file must contain
+an instance of class <A HREF="SlideShow.html">SlideShow</A>
+in serialized form written using Java object serialization.
+The M2MI Library contains two example slide show files
+in the directory <TT>"lib/edu/rit/slides/test/"</TT>,
+file <TT>"SlideShow01.ss"</TT>
+and file <TT>"SlideShow02.ss"</TT>.
+The first slide appears in the Slide Projector window
+and in every Slide Screen that is part of the same theatre:
+<BR>&nbsp;
+<CENTER>
+<IMG SRC="doc-files/slideprojector2.png">
+</CENTER>
+<BR>&nbsp;
+
+<LI>
+Click the "Next slide", "Previous slide",
+"First slide", and "Last slide" buttons
+to move through the slide show.
+You can also click on the slide itself
+to move to the next slide.
+You can also use the following keys for navigation:
+<BR>&nbsp;
+<TABLE BORDER=0 CELLPADDING=0 CELLSPACING=0>
+<TR>
+<TD ALIGN="left" VALIGN="top">Return</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Next slide</TD>
+<TD WIDTH=80> </TD>
+<TD ALIGN="left" VALIGN="top">Page Up</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Previous slide</TD>
+</TR>
+<TR>
+<TD ALIGN="left" VALIGN="top">Space bar</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Next slide</TD>
+<TD WIDTH=80> </TD>
+<TD ALIGN="left" VALIGN="top">Page Down</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Next slide</TD>
+</TR>
+<TR>
+<TD ALIGN="left" VALIGN="top">Up arrow</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Previous slide</TD>
+<TD WIDTH=80> </TD>
+<TD ALIGN="left" VALIGN="top">Home</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">First slide</TD>
+</TR>
+<TR>
+<TD ALIGN="left" VALIGN="top">Down arrow</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Next slide</TD>
+<TD WIDTH=80> </TD>
+<TD ALIGN="left" VALIGN="top">End</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Last slide</TD>
+</TR>
+<TR>
+<TD ALIGN="left" VALIGN="top">Left arrow</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Previous slide</TD>
+</TR>
+<TR>
+<TD ALIGN="left" VALIGN="top">Right arrow</TD>
+<TD WIDTH=20> </TD>
+<TD ALIGN="left" VALIGN="top">Next slide</TD>
+</TABLE>
+<BR>&nbsp;
+
+<LI>
+Click the "Blank" button
+to make the Slide Projector temporarily stop projecting slides.
+This will cause all the Slide Screens in the theatre
+to go blank
+(unless another Slide Projector is still projecting slides).
+While the Slide Projector is blanked,
+you can change theatres,
+navigate through the slide show,
+or open another slide show.
+Click the "Unblank" button
+to make the Slide Projector start projecting slides again.
+
+</OL>
+
+<P>
+<HR>
+<A NAME="creating"><H2>3. Creating a Slide Show</H2></A>
+
+<P>
+As stated above, the Slide Projector reads a file
+containing an instance of class <A HREF="SlideShow.html">SlideShow</A>
+in serialized form written using Java object serialization.
+The M2MI Library does not at present
+include a WYSIWYG application
+for creating slide show files.
+However, you can write a Java program
+to create a <A HREF="SlideShow.html">SlideShow</A> object
+and serialize it into a file.
+To learn how, study the source code
+for classes <A HREF="test/SlideShow01.html">SlideShow01</A>
+and <A HREF="test/SlideShow02.html">SlideShow02</A>
+in package <A HREF="test/package-summary.html">edu.rit.slides.test</A>.
+Class <A HREF="test/SlideShow01.html">SlideShow01</A>
+created the file <TT>"SlideShow01.ss"</TT>.
+Class <A HREF="test/SlideShow02.html">SlideShow02</A>
+created the file <TT>"SlideShow02.ss"</TT>.
+
+<P>
+Each <A HREF="SlideShow.html">SlideShow</A> object
+contains a number of <A HREF="Slide.html">Slide</A> objects.
+Each <A HREF="Slide.html">Slide</A> object in turn
+contains a number of <A HREF="items/SlideItem.html">SlideItem</A> objects.
+Package <A HREF="items/package-summary.html">edu.rit.slides.items</A>
+provides various kinds of slide items,
+including text, images, rectangles, and lines
+with various bullets, colors, outlines, and arrows.
+You can also write your own subclasses
+of class <A HREF="items/SlideItem.html">SlideItem</A>
+to define your own kinds of slide items.
+
+</BODY>
+</HTML>

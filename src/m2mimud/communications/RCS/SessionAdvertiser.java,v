@@ -1,0 +1,438 @@
+head	1.6;
+access;
+symbols;
+locks
+	rjw2183:1.6; strict;
+comment	@# @;
+
+
+1.6
+date	2005.01.06.14.01.48;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.12.14.17.22.57;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.12.10.02.29.29;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.11.11.04.28.59;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.08.12.01.21.57;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.41;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The session advertiser is responsible for advertising out the session's
+ * existence to all listening game units.  All members of the sessions use
+ * this class to advertise the session they are in.  
+ * 
+ * @@author: Robert Whitcomb
+ * @@version: $Id: SessionAdvertiser.java,v 1.5 2004/12/14 17:22:57 rjw2183 Exp $
+ * 
+ */
+ package m2mimud.communications;
+ 
+ import edu.rit.util.Timer;
+ import edu.rit.util.TimerTask;
+ import edu.rit.util.TimerThread;
+ import edu.rit.m2mi.M2MI;
+ import java.util.Random;
+ 
+ public abstract class SessionAdvertiser
+ implements DiscoverableGame
+ {
+ 	// Timer for doing report() calls
+	protected Timer reportTimer;
+	
+	// PRNG for choosing report intervals
+	protected Random intervalPRNG;
+	
+	// The omnihandle for all other games
+	protected GameDiscovery allGameUnits;
+	
+	/**
+	 * This private class is used to repeatedly invoke the report()
+	 * function on all other games in the world
+	 */
+	private class ReportTimerTask
+	implements TimerTask
+	{
+		/**
+		 * Constructor
+		 */
+		public ReportTimerTask()
+		{
+		}
+		
+		public void action( Timer theTimer )
+		{
+			invokeReport( theTimer );
+		}
+	}
+	
+	/** 
+	 * Constructor
+	 */
+	public SessionAdvertiser()
+	{
+		// Initialize all the private data members and export this object to the M2MI layer				
+		allGameUnits = (GameDiscovery)M2MI.getOmnihandle( GameDiscovery.class );		
+		intervalPRNG = new Random();
+		reportTimer = TimerThread.getDefault().createTimer( new ReportTimerTask() );		
+	}
+			
+	/**
+	 * Stops the timer from reporting
+	 */
+	public synchronized void stopReporting()
+	{
+		reportTimer.stop();
+	}
+
+	/**
+	 * Reports the existence of a sessions.
+	 * For the purposes of this class, this causes the report timer to reset itself so it doesn't
+	 * flood the network.
+	 * @@param theSession Multihandle to the game unit within the session
+	 * @@param sessionName Name of the sessions
+	 * @@param numGames Number of games within the session
+	 */
+	public abstract void report( SessionAd theAd );
+	  
+	  
+	/** 
+	 * The request function causes the unit to speed up it advertisements.
+	 */
+	public void request()
+	{
+		scheduleFastReport();
+	}
+	
+	
+	/** 
+	 * Call report on everyone.
+	 */
+	protected abstract void invokeReport( Timer theTimer );	   
+	   
+	   
+	/**
+	 * Schedule a normal timed report
+	 */
+	protected void scheduleNormalReport()
+	{
+		// These go off every 5 minutes.
+		restartTimer( 60000 );
+	}
+	    
+	/**
+	 * Schedule a fast report
+	 */	     	
+	protected void scheduleFastReport()
+	{
+		// These go off after 10 seconds
+		restartTimer( 10000 );
+	}
+	     
+	/**
+	 * Schedule an emergency report
+	 */
+	protected void scheduleEmergencyReport()
+	{
+		System.err.println( "Doing an emergency report now." );
+		restartTimer( 1000 );
+	}
+	     
+	/**
+	 * This causes the report timer to be restarted using
+	 * the specificed interval	
+	 * @@param theInterval the interval to use.
+	 */
+	private void restartTimer( long theInterval )
+	{
+		reportTimer.stop();
+		int randomTime = intervalPRNG.nextInt( 10000 );
+		reportTimer.start( theInterval + randomTime );
+	}	     	   
+ }
+ 
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: SessionAdvertiser.java,v 1.4 2004/12/10 02:29:29 rjw2183 Exp rjw2183 $
+d37 3
+d50 3
+d64 2
+a65 2
+	 public synchronized void stopReporting()
+	 {
+d67 1
+a67 1
+	 }
+d77 1
+a77 2
+	 
+	  public abstract void report( SessionAd theAd );
+d80 7
+a86 7
+	  /** 
+	   * The request function causes the unit to speed up it advertisements.
+	   */
+	  public void request()
+	  {
+	  	scheduleFastReport();
+	  }
+d89 4
+a92 4
+	  /** 
+	   * Call report on everyone.
+	   */
+	   protected abstract void invokeReport( Timer theTimer );	   
+d95 6
+a100 6
+	   /**
+	    * Schedule a normal timed report
+	    */
+	    protected void scheduleNormalReport()
+	    {
+	    	// These go off every 5 minutes.
+d102 1
+a102 1
+	    }
+d104 6
+a109 7
+	    /**
+	     * Schedule a fast report
+	     */
+	     
+	     protected void scheduleFastReport()
+	     {
+	     	// These go off after 10 seconds
+d111 1
+a111 1
+	     }
+d113 6
+a118 6
+	     /**
+	      * Schedule an emergency report
+	      */
+	     protected void scheduleEmergencyReport()
+	     {
+	     	System.err.println( "Doing an emergency report now." );
+d120 1
+a120 1
+	     }
+d122 8
+a129 8
+	     /**
+	      * This causes the report timer to be restarted using
+	      * the specificed interval	
+	      * @@param theInterval the interval to use.
+	      */
+	     private void restartTimer( long theInterval )
+	     {
+	     	reportTimer.stop();
+d132 1
+a132 2
+	     }
+	     	   
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: SessionAdvertiser.java,v 1.3 2004/11/11 04:28:59 rjw2183 Exp rjw2183 $
+d96 1
+a96 1
+		reportTimer.start( 60000 + getRandomInterval()  );
+d106 1
+a106 1
+		reportTimer.start( 6000 + getRandomInterval() );
+d114 2
+a115 1
+	     	reportTimer.start( 30000 + getRandomInterval()  );
+d118 6
+a123 1
+	     private int getRandomInterval()
+d125 5
+a129 2
+	     	return intervalPRNG.nextInt( 10000 );
+	     }	
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: SessionAdvertiser.java,v 1.2 2004/08/12 01:21:57 rjw2183 Exp $
+a29 4
+	// The ad for this session
+	protected SessionAd mySessionAd;
+	
+	
+d49 1
+a49 2
+		// Initialize all the private data members and export this object to the M2MI layer		
+		mySessionAd = null;
+d54 1
+a54 27
+	
+	
+	/**
+	 * The associate function attaches a name and a session multihandle to this game unit,
+	 * and then starts the advertising process
+	 * 
+	 * @@param sessName The name of the session.
+	 * @@param sessHand The multihandle for the session
+	 * @@param theNumber The number of games in the session
+	 * @@param theCachePos The xyloc for the next available position in the game cache.
+	 * @@exception NullPointer Exception thrown if the name or session handle is null.
+	 */
+	 public synchronized void associate( SessionAd theAd )
+	 throws NullPointerException
+	 {
+	 	if( theAd.sessionName == null || theAd.sessionHandle == null )
+		{
+			throw new NullPointerException();
+		}
+		else
+		{			
+			M2MI.export( this, DiscoverableGame.class );
+			mySessionAd = theAd;
+			scheduleNormalReport();
+		}
+	}
+		
+d62 1
+a62 9
+	 
+	 /**
+	  * Clears the sessions name, handle, and number of games
+	  */
+	 public void clearSessionData()
+	 {
+	 	mySessionAd = null;		
+	 }  
+	
+d87 1
+a87 5
+	   protected synchronized void invokeReport( Timer theTimer )
+	   {
+	   	if( theTimer.isTriggered() && mySessionAd != null )								
+			allGameUnits.report( mySessionAd );		
+	   }
+d96 1
+a96 1
+		reportTimer.start( 300000 + getRandomInterval()  );
+d105 2
+a106 2
+	     	// These go off after a minute
+		reportTimer.start( 60000 + getRandomInterval() );
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: SessionAdvertiser.java,v 1.1 2004/06/10 17:00:41 rjw2183 Exp $
+d138 2
+a139 1
+	    	reportTimer.start( intervalPRNG.nextInt( 6000 ) + 6000 );
+d148 2
+a149 1
+	     	reportTimer.start( intervalPRNG.nextInt( 600 ) + 600 );
+d157 1
+a157 1
+	     	reportTimer.start( intervalPRNG.nextInt( 300 ) + 200 );
+d160 4
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: SessionAdvertiser.java,v 1.4 2004/04/09 16:16:10 rjw2183 Exp rjw2183 $
+d18 1
+a18 1
+ public class SessionAdvertiser
+d31 1
+a31 1
+	protected SessionAd myAd;
+d54 1
+a54 1
+		myAd = null;
+d81 1
+a81 1
+			myAd = theAd;
+d99 1
+a99 1
+	 	myAd = null;		
+d111 2
+a112 5
+	  public void report( SessionAd theAd )
+	  {
+		if( theAd.sessionHandle.equals( myAd.sessionHandle ) )
+			scheduleNormalReport();
+	  }	
+d128 2
+a129 4
+	   	if( theTimer.isTriggered() && myAd != null )
+		{			
+			allGameUnits.report( myAd );
+		}
+d136 1
+a136 1
+	    private void scheduleNormalReport()
+d145 1
+a145 1
+	     private void scheduleFastReport()
+d150 8
+@

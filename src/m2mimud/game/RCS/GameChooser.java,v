@@ -1,0 +1,374 @@
+head	1.4;
+access;
+symbols;
+locks
+	rjw2183:1.4; strict;
+comment	@# @;
+
+
+1.4
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.08.11.20.06.44;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.29.20.00.18;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The Gamechooser object is the one that maintains the list available
+ * games sessions.
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: GameChooser.java,v 1.3 2004/08/11 20:06:44 rjw2183 Exp $
+ *
+ */
+ 
+ package m2mimud.game;
+ 
+ import java.util.Vector; 
+ import javax.swing.AbstractListModel;
+ import javax.swing.JList;
+ import javax.swing.event.ListSelectionEvent;
+ import javax.swing.event.ListSelectionListener;
+ import m2mimud.communications.GameDiscoveryListener;
+ import m2mimud.communications.Game;
+ import m2mimud.communications.SessionAd;
+ import m2mimud.state.GameState;
+ 
+ public class GameChooser
+ extends AbstractListModel
+ implements GameDiscoveryListener, ListSelectionListener
+ {
+ 
+ 	// Vector of Game data objects
+	private Vector sessions;
+	
+	// Vector of multihandles to the sessions
+	private Vector handles;
+	
+	// The currently selected session
+	private Game currentSelected;
+	
+	private JList list;
+	
+	//The listener
+	private GameChooserListener myListener;
+	
+	/**                                                                                              
+
+	 * Create a new GameChooser Object
+	 */
+	public GameChooser()
+	{
+		sessions = new Vector();
+		handles = new Vector();
+		currentSelected = null;
+		list = null;
+		
+		handles.add( null );
+		sessions.add( null );
+	}
+	
+	/**
+	 * Sets the listener for this object
+	 * @@param list The listener
+	 */
+	public void setListener( GameChooserListener list )
+	{
+		myListener = list;
+	}
+	
+	/**
+	 * Associates a Jlist with this object
+	 * @@param nList the Jlist object used to store data
+	 */
+	public synchronized void setJList( JList nlist )
+	{
+		list = nlist;
+		if( list != null )
+		{
+			list = nlist;
+			list.setModel( this );
+			list.addListSelectionListener( this );
+			list.setSelectedIndex( 0 );
+		}
+	}
+
+	/**
+	 * Notify this that a sesson has been added
+	 *
+	 * @@param: sessionName The name of the session
+	 * @@param: count The number of units in the session
+	 * @@param: handle The handle to the session
+	 */
+	public void newSessionAdded( SessionAd theSession )                                                                                              
+	{		
+		int i = handles.size();		
+		handles.add( theSession.sessionHandle );		
+		sessions.add( theSession );				
+		fireIntervalAdded( this, i, i );
+	}
+	
+	/**
+	 * Notify that a session has left.
+	 *
+	 * @@param: handle The handle of the session which left.
+	 */
+	public void sessionLeft( Game handle )
+	{
+	 	int i = handles.indexOf( handle );
+		if( i >= 0 )
+		{
+			handles.removeElementAt( i );
+			sessions.removeElementAt( i );
+			fireIntervalRemoved( this, i, i );
+		}
+	}
+		
+	/**
+	 * Notify that the session's count has changed
+	 *
+	 * @@param: handle The handle to the game
+	 * @@param: newCount The new count
+	 */
+	 public void sessionCountChanged( Game handle, int newCount )
+	 {
+	 	int i = handles.indexOf( handle );
+		if( i >= 0 )
+		{
+			SessionAd temp = (SessionAd)sessions.elementAt( i );
+			temp.sessionCount = newCount;
+			sessions.setElementAt( temp, i );
+			fireContentsChanged( this, i, i );
+		}
+	}
+	
+	/**
+	 * Informs the Jlist that a session's state has changed
+	 * @@param: handle The handle to the session whose state has changed
+	 * @@param: newState The new state of the session
+	 */
+	public void sessionStateChanged( Game handle, GameState newState )
+	{
+		int i = handles.indexOf( handle );
+		if( i >= 0 )
+		{
+			SessionAd temp = (SessionAd)sessions.elementAt( i );
+			temp.sessionState = newState;
+			sessions.setElementAt( temp, i );
+			fireContentsChanged( this, i, i );
+		}
+	}
+	
+	/**
+	 * Return the count
+	 */
+	 public synchronized int getSize()
+	 {
+	 	return sessions.size();
+	 }
+	
+	 /**
+	  * Return the element at the given index
+	  * @@param: i The index
+	  */
+	  public synchronized Object getElementAt( int i )
+	  {
+	  	return sessions.elementAt( i );
+	  } 
+		
+		
+	/**
+	 * Report that the selection has changed
+	 */
+	public synchronized void valueChanged( ListSelectionEvent e)
+	{
+		String name =  null;
+		Game handle = null;
+		int count = 0;
+		int i = 0;
+		if( list != null )
+		{
+			i = list.getSelectedIndex();			
+			if( i == -1 )
+			{
+				list.ensureIndexIsVisible( 0 );
+				list.setSelectedIndex( 0 );
+			}
+			else if( i == 0 )
+			{
+				name = null;
+				handle = null;
+			}
+			else
+			{
+				if( i < sessions.size() )
+				{
+					SessionAd temp = (SessionAd)sessions.elementAt( i );
+					name = temp.sessionName;
+					count = temp.sessionCount;				
+					handle = (Game)handles.elementAt( i );
+				}
+			}
+			
+			if( (currentSelected == null && handle != null ) ||
+			    (currentSelected != null && !currentSelected.equals( handle ) ) )
+			{
+				currentSelected = handle;	
+				int j = handles.indexOf( currentSelected );
+				if( j >= 0 )
+				{
+					SessionAd temp = (SessionAd) sessions.elementAt( j );					
+					if( myListener != null )
+						myListener.gameSelected( temp );
+				}		
+			}
+						  
+		}
+	} 
+	
+		
+	/**
+	 * Set the given session.
+	 * @@param: session The session to select
+	 */
+	 public synchronized void selectSession( Game session )
+	 {
+	 	int i = 0;
+		if( session != null )
+			i = handles.indexOf( session );
+		
+		if( i >= 0 )
+		{
+			list.ensureIndexIsVisible( i );
+			list.setSelectedIndex( i );
+		}
+	}
+	
+	/**
+	 * Purges the lists.
+	 */
+	public void purge()
+	{
+		sessions.clear();
+		handles.clear();
+	}
+}
+		
+			
+		
+	
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: GameChooser.java,v 1.2 2004/06/29 20:00:18 rjw2183 Exp $
+d56 4
+d64 1
+d67 1
+d88 2
+a89 3
+	 public void newSessionAdded( SessionAd theSession )                                                                                              
+
+	 {		
+d101 2
+a102 2
+	 public void sessionLeft( Game handle )
+	 {
+d111 1
+a111 19
+	
+	/**
+	 * Notify that the session's name has changed
+	 *
+	 * @@param: handle The handle to the game.
+	 * @@param: name The new name
+	 */
+	public void sessionNameChanged( Game handle, String name )
+	{
+		int i = handles.indexOf( handle );
+		if( i >= 0 )
+		{
+			SessionAd temp = (SessionAd)sessions.elementAt( i );
+			temp.sessionName = name;
+			sessions.setElementAt( temp, i );
+			fireContentsChanged( this, i, i );
+		}
+	}
+	
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: GameChooser.java,v 1.1 2004/06/10 18:22:40 rjw2183 Exp rjw2183 $
+d202 7
+a208 4
+				SessionAd temp = (SessionAd)sessions.elementAt( i );
+				name = temp.sessionName;
+				count = temp.sessionCount;				
+				handle = (Game)handles.elementAt( i );
+d244 9
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: GameChooser.java,v 1.12 2004/04/15 23:29:08 rjw2183 Exp rjw2183 $
+a139 17
+		}
+	}
+	
+	/**
+	 * Informs the listener that the state has changed.
+ 	 * @@param: handle The handle to the sessoin
+	 * @@param: newState The new state of the game
+	 */
+	public void sessionPlayersChanged( Game handle, Vector newPlayers )
+	{
+		int i = handles.indexOf( handle );
+		if( i >= 0 )
+		{
+			SessionAd temp = (SessionAd)sessions.elementAt( i );
+			temp.sessionPlayers = newPlayers;
+			sessions.setElementAt( temp, i );
+			fireContentsChanged( this, i, i );
+@

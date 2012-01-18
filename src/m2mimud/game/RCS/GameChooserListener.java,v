@@ -1,0 +1,64 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * A listener the game choosers uses to notify that the selected screen has
+ * changed.
+ * @@author: Robert Whitcomb
+ * @@version: $Id$
+ *
+ */
+ package m2mimud.game;
+ 
+ import m2mimud.communications.Game;
+ import m2mimud.communications.SessionAd;
+
+ public interface GameChooserListener
+ {
+ 	/**
+	 * Informs this object that a session has been selected
+	 * @@param theAd The sessionad object that contains the information
+	 * for the session selected.
+	 */
+	public void gameSelected( SessionAd theAd );
+ }
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d4 2
+a5 1
+ * 
+d15 6
+a20 1
+ 	public void gameSelected( SessionAd theAd );
+@

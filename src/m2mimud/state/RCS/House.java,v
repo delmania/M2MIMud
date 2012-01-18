@@ -1,0 +1,490 @@
+head	1.9;
+access;
+symbols;
+locks
+	rjw2183:1.9; strict;
+comment	@# @;
+
+
+1.9
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.12.14.17.22.24;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.10.21.02.47.24;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.09.24.03.43.35;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.09.23.03.59.57;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.08.11.20.06.36;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.07.16.18.35.43;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.29.20.00.03;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.08;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The house object contains all the information needed for a player.
+ * owned house.
+ * @@author: Robert Whitcomb
+ * @@version: $Id: House.java,v 1.8 2004/12/14 17:22:24 rjw2183 Exp $
+ */
+ package m2mimud.state;
+ 
+ import java.io.*;
+ import java.util.Vector;
+ import java.util.Iterator;
+ import edu.rit.m2mi.Eoid;
+ import m2mimud.command.special.HouseCreationCommand;
+ 
+ public class House
+ implements Externalizable
+ {
+	// If this  is true, all can enter the house, otherwise, only the
+	// owner may.
+ 	private boolean allEnter; 
+	
+	// The list of players in this house.
+	private Vector players;  
+	
+	// The owner's description of this house
+	private String description;
+	
+	// The name of the owner of this house/
+	private String ownerName;
+	 
+	
+	// The location this world is in
+	private XYloc location;
+	
+
+	// Handle to the owner of the house
+	private Eoid ownerId;
+	
+	public House()
+	{
+		allEnter = false;
+		players = new Vector();
+		description = new String();
+		location = new XYloc( -1, -1 );		
+		ownerId = new Eoid();
+		ownerName = new String();
+	}
+		
+	/** 
+	 * Constructor
+	 * @@param loc the location of the house
+	 * @@param theOwner The owner of the house
+	 * @@param: theSetting The intial settings of the house
+	 */
+	public House( PlayerCharacter theOwner, HouseCreationCommand theSetting )
+	{
+		allEnter = theSetting.getInitialAccess();
+		players = new Vector();
+		description = theSetting.getStringData();
+		location = new XYloc( theOwner.getLocation() );
+		ownerId = theOwner.getId();
+		ownerName = theOwner.getName();		
+	}
+	
+	 
+	 /**
+	 * Sets whether or not this house has public access.
+	 * @@param: access True is the user wants to let everyone enter his/her
+	 *         house. False if the user doesn't.
+	 */
+	public void setAccess( boolean access )
+	{
+		allEnter = access;
+	} 
+	
+	/** 
+	 * Returns whether or not people can enter into a house
+	 */
+	public boolean canEnter()
+	{
+		return allEnter;
+	}
+	
+	/** 
+	 * Sets the description of this hosue
+	 * @@param: desc The description of the house
+	 */	  
+	public void setDescription( String desc )
+	 {
+		description = desc;
+	 }
+	
+	/**
+	 * Gets the players currently in the house.
+	 */
+	public synchronized Iterator playersIn()
+	{
+		return players.iterator();
+	}
+	
+	/** 
+	 * Attempts to add a player to the house
+	 * Returns true if the player is in house, false otherwise
+	 * @@param: player The player to add
+	 */
+	public synchronized void addPlayer( Eoid player )
+	{		
+		if( players.indexOf( player ) == -1 )
+                players.add( player );		
+	}	
+	
+	
+	/**
+	 * Removes a player from the house
+	 * @@param player The player to remove
+	 */
+	public synchronized void removePlayer( Eoid player )
+	{
+		players.remove( player );		
+	}
+	
+	/**
+	 * Returns the location of this house
+	 */
+	public synchronized XYloc getLocation()
+	{
+		return location;
+	}
+	
+	/**
+	 * Returns a refernce to the owner of this house.
+	 */
+	public synchronized Eoid getOwner()
+	{
+		return ownerId;
+	}
+	
+	/**
+	 * Returns the name of the owner
+	 */
+	public String getOwnerName()
+	{
+		return ownerName;
+	}
+	
+	/**
+	 * Returns the description of the house
+	 */
+	public String getDescription()
+	{
+		return description;
+	}
+	/**
+	 * Returns a string representation of this house.
+	 */
+	public synchronized String toString()
+	{
+	 	return ownerName + "'s house. (id: "+ ownerId +")";
+	}
+	
+	/**
+	 * Returns if the player is in  this house
+	 * @@param pId the id to check
+	 */
+	public boolean hasPlayer( Eoid pId )
+	{
+		return players.indexOf( pId ) != -1;
+	}
+	
+	/**
+	 * Returns whether or not this house is equal to another one.
+	 * @@param other The other house to compare to
+	 */
+	public synchronized boolean equals( Object other )
+	{
+		boolean retVal = false;		
+		if( !this.getClass().isInstance( other ) )		
+			retVal = false;
+		else
+			retVal = ( 
+			           ( this.ownerId.equals( ((House)other).ownerId ) ) && 
+			           ( this.location.equals( ((House)other).location ) )  &&
+				   ( this.ownerName.equals( ((House)other).ownerName ) ) &&
+				   ( this.description.equals( ((House)other).description ) ) &&
+				   ( this.players.equals( ((House)other).players ) ) &&
+				   ( this.allEnter == ((House)other).allEnter )
+				 );				   
+		return retVal;
+	}
+		
+	/**
+	 * Removes all players from this house.
+	 */
+	public void clearPlayers()
+	{
+		players.clear();
+	} 
+	
+	/**
+	 * Returns whether or not a house has players
+	 */
+	public boolean hasPlayers()
+	{
+		return !players.isEmpty();
+	}
+	
+	/**
+	 * Returns an iterator contain the id's of all the players
+	 */
+	public Iterator getPlayers()
+	{
+		return players.iterator();
+	}
+	
+	/**
+	 * Write the house object to output
+	 * @@param out The object to write to.
+	 */
+	public void writeExternal( ObjectOutput out )
+	throws IOException
+	{
+		out.writeObject( ownerId );
+		out.writeObject( ownerName );
+		out.writeObject( new Boolean( allEnter ) );
+		out.writeObject( location );
+		out.writeObject( description );
+		out.writeObject( players );				
+	}
+	
+  	  
+	/**
+	 * Reads the object in from input
+	 * @@param in The input object to read from
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{	 	
+		ownerId = (Eoid)in.readObject();
+		ownerName = (String)in.readObject();
+		allEnter = ((Boolean)in.readObject()).booleanValue();
+		location = (XYloc)in.readObject();
+		description = (String)in.readObject();
+		players = (Vector)in.readObject();		
+	}
+		
+ }
+
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.7 2004/10/21 02:47:24 rjw2183 Exp $
+d65 2
+a66 1
+	/**
+d76 3
+d83 1
+d87 2
+a88 2
+	 */
+	 public void setDescription( String desc )
+d169 1
+d214 1
+d230 8
+a237 7
+  	 /**
+	  * Reads the object in from input
+	  * @@param in The input object to read from
+	  */
+	 public void readExternal( ObjectInput in )
+	 throws IOException, ClassNotFoundException
+	 {	 	
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.6 2004/09/24 03:43:35 rjw2183 Exp rjw2183 $
+d103 2
+a104 1
+		players.add( player );		
+@
+
+
+1.6
+log
+@Add a function to determine if a player is in the house.
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.5 2004/09/23 03:59:57 rjw2183 Exp rjw2183 $
+a213 3
+		int numPlayers = players.size();
+		Iterator playerIter = players.iterator();
+		
+d219 1
+a219 3
+		out.writeInt( numPlayers );
+		while( playerIter.hasNext() )		
+			out.writeObject( (Eoid)playerIter.next() );		
+d228 1
+a228 3
+	 {
+	 	int numPlayers;
+		
+d234 1
+a234 3
+		numPlayers = in.readInt();
+		for( int i = 0;  i < numPlayers; i++ )
+			players.add( (Eoid)in.readObject() );
+@
+
+
+1.5
+log
+@Added the getOwnerName and GgetDescription functions.
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.4 2004/08/11 20:06:36 rjw2183 Exp $
+d156 8
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.3 2004/07/16 18:35:43 rjw2183 Exp $
+d64 1
+d75 4
+d101 3
+a103 27
+	public synchronized boolean addPlayer( Eoid player )
+	{
+		boolean didEnter = false;
+		
+		// The owner may enter at any time.
+		if( ownerId.equals( player ) )
+		{
+			players.add( player );
+			didEnter = true;
+		}
+		else if( allEnter == true )
+		{
+			// If anyone may enter the house,
+			// they may only enter if there is less than
+			// 3 people in the house.
+			if( players.size() < 3 )
+			{
+				players.add( player );
+				didEnter = false;
+			}
+			else
+				didEnter = false;
+		}
+		else
+			didEnter = false;
+		
+		return didEnter;
+d133 15
+d185 15
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.2 2004/06/29 20:00:03 rjw2183 Exp rjw2183 $
+d55 1
+a55 1
+	public House( XYloc loc, PlayerCharacter theOwner, HouseCreationCommand theSetting )
+d60 1
+a60 1
+		location = new XYloc( loc );
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.1 2004/06/10 17:00:08 rjw2183 Exp rjw2183 $
+d169 2
+a170 1
+			retVal = ( ( this.ownerId.equals( ((House)other).ownerId ) ) && 
+d172 5
+a176 1
+				   ( this.ownerName.equals( ((House)other).ownerName ) ) );				   
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+a5 1
+ * @@version: $Id: House.java,v 1.3 2004/05/13 15:41:43 rjw2183 Exp rjw2183 $
+d60 1
+a60 1
+		location = loc;
+@

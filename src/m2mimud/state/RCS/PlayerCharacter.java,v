@@ -1,0 +1,1527 @@
+head	1.17;
+access;
+symbols;
+locks
+	rjw2183:1.17; strict;
+comment	@# @;
+
+
+1.17
+date	2005.01.13.15.47.06;	author rjw2183;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2004.12.14.17.22.24;	author rjw2183;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2004.12.10.02.29.16;	author rjw2183;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2004.10.21.02.47.24;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.09.23.03.59.57;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.09.22.03.27.36;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.08.17.17.53.33;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.08.16.18.30.07;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.08.11.20.06.36;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.07.22.19.33.30;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.07.16.18.35.43;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.07.06.19.58.30;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.23.19.57.33;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.16.19.58.46;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.15.19.52.00;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.08;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@/** 
+ * The PlayerCharacter class is the objeect representation of the player's
+ * character, or toon.  This is the character with whom they play the game.
+ * 
+ * @@author: Robert Whitcomb
+ * @@version: $Id: PlayerCharacter.java,v 1.16 2005/01/06 17:38:24 rjw2183 Exp rjw2183 $
+ */
+ package m2mimud.state;
+ 
+ import edu.rit.m2mi.Eoid;
+ import java.io.*;
+ import java.util.Iterator;
+ import java.util.HashMap;
+ import java.util.Arrays;
+ import m2mimud.command.special.PlayerCreationCommand;
+ import m2mimud.communications.Game;
+ 
+ public class PlayerCharacter
+ implements Externalizable
+ {
+ 
+ 	private String name; // character's name
+	private int[] stats; // the character's stats 
+	private String[] equipment;
+	private int sex; // The character's sec 0 is male, 1 is female
+	private int clas; // character's classm, f is for figher, m is for mage
+	private int level; // the current level of the character
+	private Eoid myId; // A unique id for this player
+	private HashMap inventory;  // the player's inventory
+	private int gold; // the amount of gold a player has
+	private Game myHandle; // the handle to the game which controls this player
+	private MobKey myMobTarget; // the monster target for this player
+	private boolean inCombat; // whether or no this player is in combat
+	private Eoid myPlayerTarget; // the player target for this player
+	private int currentExp; // the current amount of exp the player has
+	private int currentHP; // thw current amount of hp a player has
+	private int maxHP; // the maximum amount
+	private boolean alive; // whether or not this oplayer has been killed
+	private XYloc currentLoc; // the current location of the player
+	private String className;
+	private boolean inHouse; // a boolean variable to indicate that the user has entered a house
+	private Eoid houseId; // the id of the house the player is in
+	
+	// Used to access the character's stats
+	public static final int STR = 0;
+	public static final int CON = 1;
+	public static final int DEX = 2;
+	public static final int INT = 3;
+	
+	/**
+	 * Used to access the equipment
+	 */
+	public static final int BODY = 0;
+	public static final int TWO_HAND = 1;
+	public static final int RIGHT_HAND = 2;
+	public static final int LEFT_HAND = 3;
+	
+	/** 
+	 * These variables are used to store data about the character's sex and class
+	 */
+	public static final int MALE = 0;
+	public static final int FEMALE = 1;
+	public static final int FIGHTER = 0;
+	public static final int MAGE = 1;
+	
+	/**
+	 * Dummy constructor needed for externalizable
+	 * DO NOT CALL EVER!
+	 */
+	public PlayerCharacter()
+	{
+		name = new String();
+		stats = new int[4];
+		equipment = new String[4];
+		myId = new Eoid();
+		inventory = new HashMap();
+		alive = true;
+		currentLoc = new XYloc( 0, 0 );
+		className = new String();
+		houseId = new Eoid();
+	}	
+	/* 
+	 * Creates a new character. Cannot be directly accessed
+	 */
+	private PlayerCharacter( PlayerCreationCommand comm, PlayerClass data, Game handle )
+	{
+		this.name = comm.name;
+		this.sex = comm.sex;
+		this.clas = data.classCode;
+		this.className = data.className;
+		
+		stats = new int[4];
+		stats[STR] = data.str;
+		stats[CON] = data.cons;
+		stats[DEX] = data.dex;
+		stats[INT] = data.intg;
+
+		level = 1;
+		myId = Eoid.next();
+		inventory = new HashMap();
+		equipment = new String[4];
+		gold = 1000;
+		myHandle = handle;
+		currentExp = 0;
+		maxHP = data.hp;
+		currentHP = data.hp;
+		alive = true;
+		currentLoc = new XYloc( 0, 0 );
+	}
+	
+	/**
+	 * Constructor - private
+	 * This creates a playerCharacter object from another 
+	 * playerCharacter object
+	 */
+	private PlayerCharacter( PlayerCharacter other, Game handle )
+        {
+            this.name = new String( other.name );
+            this.sex = other.sex;
+            this.clas = other.clas;
+            
+            stats = new int[4];
+            stats[STR] = other.stats[STR];
+            stats[CON] = other.stats[CON];
+            stats[DEX] = other.stats[DEX];
+            stats[INT] = other.stats[INT];
+            
+            level = other.level;
+            myId = other.myId;
+            inventory = new HashMap( other.inventory );
+            equipment = new String[4];
+            for( int i = 0; i < equipment.length; i++ )
+            {
+                if( other.equipment[i] != null )
+                    equipment[i] = new String( other.equipment[i] );
+                else
+                    equipment[i] = null;
+            }
+            gold = other.gold;
+            myHandle = handle;
+            currentExp = other.currentExp;
+            maxHP = other.maxHP;
+            currentHP = other.currentHP;
+            alive = true;
+            currentLoc = new XYloc( other.currentLoc );
+        }
+                
+	/** 
+	 * Creates a new character.
+	 * @@param name The character's name.
+	 * @@param sex The character's sex.  0 is male, 1 female
+	 * @@param clas The character's class
+	 * @@return The newly created character.
+	 */
+	public static PlayerCharacter createNewCharacter( PlayerCreationCommand comm, 
+	Game handle)
+	{
+		PlayerCharacter retVal = null;
+		PlayerClass data = PlayerClass.load( comm.clas );		
+		if( data != null )		
+			retVal = new PlayerCharacter( comm, data, handle );		
+		return retVal;					   
+	}	
+        
+	/** 
+	 * Creates a new playercharacter object from the given one
+	 */
+        public static PlayerCharacter createNewCharacter( PlayerCharacter other, Game handle )	
+        {
+            return new PlayerCharacter( other, handle );
+        }
+	
+	/**
+	 * Returns a string representation of the character
+	 */
+	public String toString()
+	{
+		String s_sex, s_clas;
+		if( sex == MALE )
+			s_sex = "male";
+		else
+			s_sex = "female";
+		
+		return name + ": The level " + level + " " + s_sex + " " + className + "\n" +
+		       "(player id: " + myId + ")" + " " + currentLoc + ", inCombat " +
+		       inCombat + ", fighting: " + getTarget() + ", inHouse " + inHouse + 
+		       " houseId " + houseId;
+	}
+      
+	/**
+         * Returns the current location of the player
+	 */
+	public XYloc getLocation()
+	{
+		return currentLoc;
+	}
+	
+       
+	/**
+	 * Returns the name of the character
+	 */
+	public String getName()
+	{
+		return name;
+	}
+	
+	/**
+	 * Returns the sex of the player
+	 */
+	public int getSex()
+	{
+		return sex;
+	}
+	
+	/**
+	 * Returns the class of the player
+	 */
+	public int getPlayerClass()
+	{
+		return clas;
+	}
+	
+	/**
+	 * Returns the given stat
+	 * @@param which The stat to look up
+	 */
+	public int getStat( int which )
+	{
+		int retVal = -1;
+		if( 0 <= which && which <= 3)
+			retVal = stats[which];
+		return retVal;
+	}
+	
+	/**
+	 * Returns the level of the character
+	 */
+	public int getLevel()
+	{
+		return level;
+	}
+	
+	/**
+	 * Returns the amount of gold the player has
+	 */
+	public int getCurrentGold()
+	{
+		return gold;
+	}
+
+	/**
+	 * Returns the Id of this character
+	 */
+	public Eoid getId()
+	{
+		return myId;
+	}
+	/**
+	 * Returns whether or not this object is equal to the other one
+	 * @@param other The other character to check 
+	 */
+	public boolean equals( Object other )
+	{
+		boolean retVal = false;
+		if( other != null && this.getClass().isInstance( other ) )
+		{
+			PlayerCharacter otherPlayer = (PlayerCharacter)other;
+			if( myId.equals( otherPlayer.myId ) )
+			{
+				retVal = ( currentLoc.equals(otherPlayer.currentLoc ) &&
+				inHouse == otherPlayer.inHouse  &&
+				inCombat == otherPlayer.inCombat );
+                
+				if( retVal == true && inCombat == true )
+					retVal = this.getTarget().equals( otherPlayer.getTarget());		
+		
+			if( retVal == true )
+				retVal = checkHouseId( otherPlayer.getHouse() );                                               
+			}
+		}
+		return retVal;
+	}
+       
+	
+	/**
+	 * This determines if the two houses ideas are the same
+	 * @@param otherId The other house id.
+	 */
+	private boolean checkHouseId( Eoid otherId )
+	{
+		boolean retVal = true;
+		if(  ( houseId == null && otherId != null ) ||
+		     ( houseId != null && otherId == null ) )
+		     	retVal = false;
+		else
+		{
+			if( houseId != null && otherId != null )
+				retVal = houseId.equals( otherId );
+		}
+		return retVal;
+	}
+	
+	/**
+	 * This updates this player with the other, but it will only do
+	 * so is the players have the same Id.  Also, the information about the 
+	 * the player's target is no copied.  That must be done manually
+	 * @@param other The player to copy
+	 */
+	public void copyData( PlayerCharacter other )
+	{
+		if( other != null && myId.equals( other.myId ) )
+		{
+			name = new String( other.name );
+			sex = other.sex;
+			clas = other.clas;
+			gold = other.gold;
+			level = other.level;
+			maxHP = other.maxHP;
+			inCombat = other.inCombat;
+			alive = other.alive;
+			for( int i = 0; i < stats.length; i++ )
+				stats[i] = other.stats[i];
+			for( int i = 0; i < equipment.length; i++ )
+				equipment[i] = new String( other.equipment[i] );
+			currentLoc = new XYloc( other.currentLoc );
+		}
+	}
+	
+	/**
+	 * Private function used to determine if the two objects, 
+	 * which represent the targets, are equal.  This is used
+	 * because one of the values may be null while the other isn't.
+	 */
+	private boolean checkTargets( Object target1, Object target2 )
+	{
+		boolean retVal = false;
+		if( target1 != null && target1.equals( target2 ) ||
+		    target1 == null && target2 == null )
+		    retVal = true;
+		return retVal;
+	}
+		
+		
+	/**
+	 * Adds an item to the player's inventory
+	 * @@param id The id of the item
+	 * @@param amount the amount of the item to add
+	 */
+	public void addItem( String id, int amount )
+	{
+		if( inventory.containsKey( id ) )
+		{
+			int i = ((Integer)inventory.get( id ) ).intValue();
+			i += amount;
+			inventory.put( id, new Integer( i ) );
+		}
+		else
+			inventory.put( id, new Integer( amount ) );
+	}
+	
+	
+	
+	/**
+	 * Decrements the players's gold by the given amount
+	 * iff the player has at least as much gold as the amount
+	 * Otherwise, no action is taken
+	 * @@param amount The amount to decrement by
+	 */
+	public void decrementGold( int amount )
+	{
+		if( gold >= amount )
+			gold -= amount;
+	}
+	
+	/**
+	 * Returns whether or not the user has at least the given amount
+	 * @@param amount The amoiunt to check
+	 */
+	public boolean canAfford( int amount )
+	{
+		return gold >= amount;
+	}
+	
+	/** 
+	 * Increments the player gold by the given amount
+	 * @@param amount The amount to increment by
+	 */
+	public void incrementGold( int amount )
+	{	
+		gold += amount;
+	}
+	
+	/**
+	 * Adjusts the player's hit point by the given amount.
+	 * To decrement, just give a negative value
+	 */
+	public void adjustHP( int amount )
+	{
+		currentHP += amount;
+		if( currentHP <= 0 )
+			alive = false;
+		else if( currentHP > maxHP )
+			currentHP = maxHP;
+	}
+	
+	/**
+	 * Returns if thisplayer is currently alive
+	 */
+	public boolean isAlive()
+	{
+		return alive;
+	}
+	
+	/**
+	 * Saves this character object to a file.
+	 */
+	public void save()
+	{
+		try
+		{
+			leaveHouse();
+			String fileName = new String( "players/" + name + ".dat" );			
+			File theFile = new File( fileName );
+			FileOutputStream outStream = new FileOutputStream( theFile );
+			ObjectOutputStream objStream = new ObjectOutputStream( outStream );
+			objStream.writeObject( this );
+			objStream.flush();
+			objStream.close();
+			outStream.close();
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+			System.exit( 1 );
+		}
+	 }
+	 
+	 /**
+	  * Returns the handle to the game unit to which this character belongs
+	  */
+	 public Game getHandle()
+	 {
+		return myHandle;
+	 }
+	 
+	 /** 
+	  * Returns an interator of the ids of
+	  * the items in the user's inventory
+	  */
+	 public Iterator getInventoryKeys()
+	 {
+		return inventory.keySet().iterator();
+	 }
+	 
+	 /**
+	  * Return how much of the item the user has
+	  * @@param id The item to look at
+	  */
+	 public int getItemAmount( String id )
+	 {
+	 	int retVal = 0;
+		if( inventory.containsKey( id ) )
+			retVal = ((Integer)inventory.get( id )).intValue();
+		return retVal;
+	 }
+	 
+	 /**
+	  * Returns the id of the item at the given slot
+	  * @@param slot The slot to look at
+	  */
+	 public String getGear( int slot )
+	 {
+	 	return equipment[slot];
+	 }
+	
+	 /**
+	  * Equips the item into the given slot
+	  * If the item is going into any of the hand slots
+	  * (right, left, or two hand), then the items in the other
+	  * hand slot are adjust accordingly.  If the item
+	  * is a weapn for the left or right hand, then the 
+	  * two handed slot is emptied and vice versa
+	  * @@param id The id of the item to equip
+	  * @@param slot The slot to use
+	  */
+	 public void equipItem( String id, int slot )
+	 {
+	 	transferItem( slot );
+		equipment[slot] = id;
+		int i = ((Integer)inventory.get( id )).intValue();
+		i--;
+		inventory.put( id, new Integer( i ) );
+		
+		// if this is a two handed weapon, sheathe the items in the 
+		// right and left hand.		 
+		if( slot == TWO_HAND )
+		{
+			transferItem( RIGHT_HAND );
+			transferItem( LEFT_HAND );
+		}
+		
+		// if this is right or left handed item, sheathe the 2 handed slot
+		if( slot == RIGHT_HAND || slot == LEFT_HAND )
+			transferItem( TWO_HAND );		
+	 }
+	 
+	 /** 
+	  * Private function which transfer the item from the slot back into
+	  * the user's inventory
+	  * @@param slot The slot to transfer
+	  */
+	 private void transferItem( int slot )
+	 {
+	 	if( equipment[slot] != null )
+		{
+			int value = ((Integer)inventory.get( equipment[slot] )).intValue();
+			value++;
+			inventory.put( equipment[slot], new Integer( value ) );
+			equipment[slot] = null;
+		}
+	} 
+	
+	 /**
+	  * Returns the currently equiped weapon, if any.
+	  */
+	 public String getEquippedWeapon()
+	 {
+	 	String retVal = null;
+		if( equipment[RIGHT_HAND] == null )
+			retVal = equipment[TWO_HAND];
+		else
+			retVal = equipment[RIGHT_HAND];
+		return retVal;
+	 }
+	 /**
+	  * Registers the target with playe
+	  * @@param theTarget The target of the player
+	  */
+	 public void registerTarget( Object theTarget )	 	 
+	 {
+	 	if( myMobTarget == null && myPlayerTarget == null )
+		{
+			inCombat = true;
+			if( theTarget.getClass().equals( MobKey.class ) )
+				myMobTarget = (MobKey)theTarget;
+			else if( theTarget.getClass().equals( Eoid.class ) )
+				myPlayerTarget = (Eoid)theTarget;
+			else
+				clearTargetData();							
+		}
+	 }
+	 	 
+	 /**
+	  * Returns the target of the player
+	  */
+	 public Object getTarget()
+	 {
+	 	Object retVal = null;
+		if( myMobTarget != null )
+			retVal = myMobTarget;
+		else if( myPlayerTarget != null )
+			retVal = myPlayerTarget;
+		return retVal;
+	}
+	
+	/**
+	 * Updates the player's location
+	 * @@param loc The new location of the player
+	 */
+	public void updateLocation( XYloc loc )
+	{
+		currentLoc = new XYloc( loc );
+	}
+	
+	/**
+	 * Return whether or not this player is in combat
+	 */
+	public boolean isInCombat()
+	{
+		return inCombat;
+	}
+	 
+	/**
+	 * Returns whether or not the player has a mob for a target
+	 */
+	public boolean hasMobTarget() 
+	{
+		return myMobTarget != null;
+	}
+	 
+	/**
+	 * Clears the target data 
+	 */
+	public void clearTargetData()
+	{		
+		myMobTarget = null;
+		myPlayerTarget = null;
+		inCombat = false;
+	}
+	 
+	/** 
+	 * Adjusts the player's exp by the given amount
+	 */
+	public void incrementExp( int amount )
+	{
+		currentExp += amount;
+		if( currentExp < 0 )
+			currentExp = 0;
+	}
+	 
+	/**
+	 * Returns the amount of hp the player currently has
+	 */
+	public int getHP()
+	{
+	 	return currentHP;
+	}
+	 
+	/**
+	 * Return the player's maximum hp
+	 */
+	public int getMaxHP()
+	{
+		return maxHP;
+	}
+	 
+	/**
+	 * Restores the player to life
+	 */
+	public void ressurect()
+	{
+	 	currentHP = maxHP;
+		alive = true;
+		clearTargetData();		
+	}
+	 	
+	 /**
+	  * Causes a user to enter a house.
+	  * Unlike a room, the user maintains no information
+	  * about which house he or she is in.  That is because the
+	  * system is capable of looking at the location of the player, 
+	  * and then asking all the houses in that area if the player is in 
+	  * them.
+	  */
+	 public void enterHouse( Eoid theHouse )
+	 {
+	 	inHouse = true;
+		houseId = theHouse;
+	 }
+	 
+	 /**
+	  * Removes a player from the house.
+	  */
+	 public void leaveHouse()
+	 {
+	 	inHouse = false;
+		houseId = null;
+	 }
+	 
+	 /**
+	  * Returns the id of the house that the user is in
+	  */
+	 public Eoid getHouse()
+	 {
+	 	return houseId;
+	 }
+	 
+	 /**
+	  * Returnd true if the player is in a house
+	  */
+	 public boolean isInHouse()
+	 {
+	 	return inHouse;
+	 }
+	 
+	 /**
+	  * Writes the character out to output.
+	  * @@param: out The object to write to.
+	  */
+	 public void writeExternal( ObjectOutput out ) 
+	 throws IOException
+	 {	 			
+		out.writeObject( myId );
+		out.writeObject( name );
+		out.writeObject( className );
+		out.writeInt( sex );
+		out.writeInt( clas );
+		out.writeInt( level );
+		out.writeInt( gold );
+		out.writeObject( myHandle );
+		for( int i = 0; i < 4; i++ )
+			out.writeInt( stats[i] );
+		out.writeObject( inventory );
+		out.writeObject( equipment[BODY] );
+		out.writeObject( equipment[TWO_HAND] );
+		out.writeObject( equipment[RIGHT_HAND] );
+		out.writeObject( equipment[LEFT_HAND] );
+		out.writeObject( myMobTarget );
+		out.writeObject( myPlayerTarget );
+		out.writeObject( new Boolean( inCombat ) );
+		out.writeInt( currentExp );
+		out.writeInt( currentHP );
+		out.writeInt( maxHP );
+		out.writeObject( currentLoc );		
+		out.writeObject( new Boolean( inHouse ) );
+		out.writeObject( houseId );		
+	 }
+	 
+	 /**
+	  * Reads the character in from input
+	  * @@param: in The object to read in from.
+	  */
+	 public void readExternal( ObjectInput in )
+	 throws IOException, ClassNotFoundException
+	 {	 			
+		myId = (Eoid)in.readObject();
+		name = (String) in.readObject();
+		className = (String)in.readObject();
+		sex = in.readInt();
+		clas = in.readInt();
+		level = in.readInt();
+		gold = in.readInt();
+		myHandle = (Game)in.readObject();
+		for( int i = 0; i < 4; i++ )
+			stats[i] = in.readInt();
+		inventory = (HashMap)in.readObject();
+		equipment[BODY] = (String)in.readObject();
+		equipment[TWO_HAND] = (String)in.readObject();
+		equipment[RIGHT_HAND] = (String)in.readObject();
+		equipment[LEFT_HAND] = (String)in.readObject();	
+		myMobTarget = (MobKey)in.readObject();
+		myPlayerTarget = (Eoid)in.readObject();
+		inCombat = ((Boolean)in.readObject()).booleanValue();
+		currentExp = in.readInt();
+		currentHP = in.readInt();
+		maxHP = in.readInt();	
+		currentLoc = (XYloc)in.readObject();	
+		inHouse = ((Boolean)in.readObject()).booleanValue();
+		houseId = (Eoid)in.readObject();		
+	 }
+	
+	/** 
+	 * Loads the player character from a file into memory.  If the player data
+	 * doesn't exist, it is set to null to indicate that no character exists
+	 * @@param player The object to load the data into
+	 */
+	public static PlayerCharacter loadCharacterDataFromFile( Game handle, String name )
+	{
+		String fileName = new String( "players/" + name + ".dat" );
+		File characterFile = new File( fileName );
+		PlayerCharacter retVal = null;
+		if( characterFile.exists() )
+		{
+			try
+		   	{		   	
+				FileInputStream inStream = new FileInputStream( characterFile );
+				ObjectInputStream objStream = new ObjectInputStream( inStream );
+				retVal = (PlayerCharacter) objStream.readObject();	
+				retVal.myHandle = handle;
+				retVal.clearTargetData();	
+				inStream.close();
+				objStream.close();			
+		  	}
+			catch( Exception e )
+			{
+		    		e.printStackTrace();
+				System.exit( 1 );
+			}
+		}
+		return retVal;
+	}			
+ }
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.15 2004/12/14 17:22:24 rjw2183 Exp $
+d154 1
+a154 1
+	 *
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.14 2004/12/10 02:29:16 rjw2183 Exp rjw2183 $
+d111 5
+d148 1
+a148 1
+	/** na
+d154 1
+a154 2
+	 */
+	 
+d165 3
+d172 1
+a188 1
+	// Accessor functions
+d190 3
+a192 3
+       /**
+        * Returns the current location of the player
+	*/
+d198 4
+a201 3
+       /**
+	* Returns the name of the character
+	*/
+d267 6
+a272 6
+                    PlayerCharacter otherPlayer = (PlayerCharacter)other;
+                    if( myId.equals( otherPlayer.myId ) )
+                    {
+                        retVal = ( currentLoc.equals(otherPlayer.currentLoc ) &&
+                           inHouse == otherPlayer.inHouse  &&
+			   inCombat == otherPlayer.inCombat );
+d274 2
+a275 2
+                        if( retVal == true && inCombat == true )
+                            retVal = this.getTarget().equals( otherPlayer.getTarget());		
+d277 3
+a279 4
+                    if( retVal == true )
+                    	retVal = checkHouseId( otherPlayer.getHouse() );                                               
+            }
+			
+d329 5
+d393 4
+d406 3
+d413 1
+d417 2
+a418 2
+	 public void save()
+	 {
+d421 1
+a421 1
+		 	leaveHouse();
+d447 1
+a447 1
+	  * Returns an interator of all the id of
+d601 3
+d669 1
+a669 1
+	  * Returna true if the player is in a house
+d675 1
+d754 18
+a771 20
+		   try
+		   {
+		   	
+			FileInputStream inStream = new FileInputStream( characterFile );
+			ObjectInputStream objStream = new ObjectInputStream( inStream );
+			retVal = (PlayerCharacter) objStream.readObject();	
+			retVal.myHandle = handle;
+			retVal.clearTargetData();	
+			inStream.close();
+			objStream.close();			
+		    }
+		    catch( Exception e )
+		    {
+		    	e.printStackTrace();
+			System.exit( 1 );
+		    }
+		 }
+		 return retVal;
+	}	
+		
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.13 2004/10/21 02:47:24 rjw2183 Exp $
+d259 14
+a272 32
+			// It's a large list, true, but there is need to be certain
+			// that the given player is indeed the other player.  
+			// The only things that are not checked are the current hitpoints
+			// and the current exp.  This is because these values can update
+			// very quickly so there is no need to check them
+			PlayerCharacter otherPlayer = (PlayerCharacter)other;
+			retVal = 
+				(
+				myId.equals( otherPlayer.myId ) &&
+				name.equals( otherPlayer.name ) &&
+				sex == otherPlayer.sex &&
+				clas == otherPlayer.clas &&
+				gold == otherPlayer.gold &&
+				level == otherPlayer.level &&				
+				maxHP == otherPlayer.maxHP &&
+				inventory.equals( otherPlayer.inventory ) &&
+				inCombat == otherPlayer.inCombat &&
+				alive == otherPlayer.alive &&
+				myHandle.equals( otherPlayer.myHandle ) &&
+				Arrays.equals( stats, otherPlayer.stats ) &&
+				Arrays.equals( equipment, otherPlayer.equipment ) &&
+				currentLoc.equals( otherPlayer.currentLoc ) &&
+				checkHouseId( otherPlayer.getHouse() )
+				);
+				
+				if( retVal == true )
+					retVal = checkTargets( myMobTarget, otherPlayer.myMobTarget );
+				
+				if( retVal == true )
+					retVal = checkTargets( myPlayerTarget, otherPlayer.myPlayerTarget );
+					
+					
+d276 1
+a276 25
+        
+        /**
+         * This function is to determine if another player has the same state 
+         * informaton as this player.  State information means that the player
+         * has the same key and location as the other player, and is doing
+         * the same thing, i.e. fighting or is in a house
+         * @@param other The other player to check
+         */
+        public boolean checkStateData( PlayerCharacter other )
+        {
+            boolean retVal = false;
+            if( myId.equals( other.myId ) )
+            {
+                retVal = ( currentLoc.equals( other.currentLoc ) &&
+                           inHouse == other.inHouse  &&
+			   inCombat == other.inCombat );
+                
+		if( retVal == true && inCombat == true )
+                    retVal = this.getTarget().equals( other.getTarget());		
+		
+		if( retVal == true )
+			retVal = checkHouseId( other.getHouse() );
+            }	   	    
+            return retVal;
+        }
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.12 2004/09/23 03:59:57 rjw2183 Exp $
+d111 32
+a142 1
+	
+d160 5
+a164 1
+	
+@
+
+
+1.12
+log
+@Added the isInHouse funcrtion.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.11 2004/09/22 03:27:36 rjw2183 Exp rjw2183 $
+d42 1
+d80 1
+d143 2
+a144 1
+		       inCombat;
+d245 2
+a246 1
+				currentLoc.equals( otherPlayer.currentLoc )
+d259 43
+d408 2
+a409 1
+		 	String fileName = new String( "players/" + name + ".dat" );			
+d582 1
+a582 2
+	{
+		System.out.println( name + " clearTargetData() called." );
+d629 1
+a629 1
+	 public void enterHouse()
+d632 1
+d641 9
+d665 2
+a666 2
+	 {
+	 	out.writeObject( myId );
+d689 1
+d698 1
+a698 1
+	 {	 	
+d722 1
+@
+
+
+1.11
+log
+@Added the code to to take care of spellcasting.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.10 2004/08/17 17:53:33 rjw2183 Exp $
+d41 1
+d574 12
+d588 15
+d631 1
+d663 1
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.9 2004/08/16 18:30:07 rjw2183 Exp $
+d572 1
+d602 1
+a602 1
+		out.writeObject( currentLoc );
+d633 1
+a633 1
+		currentLoc = (XYloc)in.readObject();
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.8 2004/08/11 20:06:36 rjw2183 Exp rjw2183 $
+d40 1
+d77 2
+a78 2
+	}
+	
+d82 1
+a82 2
+	private PlayerCharacter( String name, int str, int con, int dex, int hp,
+	                         int intg, int sex, int clas, Game handle )
+d84 5
+a88 1
+		this.name = name;
+d90 5
+a94 6
+		stats[STR] = str;
+		stats[CON] = con;
+		stats[DEX] = dex;
+		stats[INT] = intg;
+		this.sex = sex;
+		this.clas = clas;
+d102 2
+a103 2
+		maxHP = hp;
+		currentHP = hp;
+d120 5
+a124 19
+		int str, con, dex, intg, hp;
+		if( comm.clas == FIGHTER )
+		{	
+			str = 70;
+			con = 70;
+			dex = 50;
+			intg = 40;
+			hp = 150;
+		}
+		else
+		{
+			str = 40;
+			con = 50;
+			dex = 70;
+			intg = 70;
+			hp = 100;
+		}
+		return new PlayerCharacter( comm.name, str, con, dex, hp, intg,
+		                            comm.sex, comm.clas, handle );
+d138 1
+a138 6
+		if( clas == MAGE )
+			s_clas = "mage";
+		else
+			s_clas = "fighter";
+			
+		return name + ": The level " + level + " " + s_sex + " " + s_clas + "\n" +
+d582 1
+d613 1
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.7 2004/07/22 19:33:30 rjw2183 Exp rjw2183 $
+a98 1
+		System.out.println( hp );
+d155 2
+a156 1
+		       "(player id: " + myId + ")" + " " + currentLoc;
+d550 1
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.6 2004/07/16 18:35:43 rjw2183 Exp rjw2183 $
+d99 1
+d125 1
+a125 1
+			hp = 80;
+d133 1
+a133 1
+			hp = 60;
+d135 1
+a135 1
+		return new PlayerCharacter( comm.name, str, con, dex, intg, hp,
+d372 1
+a372 1
+	 public void saveCharacterData()
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.5 2004/07/06 19:58:30 rjw2183 Exp rjw2183 $
+d244 1
+d270 26
+d505 1
+a505 1
+	 
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.4 2004/06/23 19:57:33 rjw2183 Exp $
+d12 1
+d14 1
+a14 1
+ import java.util.Iterator;
+d36 4
+a39 3
+	private int currentHP;
+	private int maxHP;
+	private boolean alive;
+d75 1
+d102 1
+d155 1
+a155 1
+		       "(player id: " + myId + ")"  ;
+d158 8
+d235 5
+a239 9
+			/*
+			 * You might think that if the Id's are the same, 
+			 * then the characters are the same, given the 
+			 * nature of the Eoid.  However, this is not the case, 
+			 * say if someone is checking an old copy of the character
+			 * as compared to the new one.  If the check was on ID alone, 
+			 * then it would back as true.  In any case, it is just better to 
+			 * check everything
+			 */
+d241 24
+a264 19
+			boolean equal = true;
+			// first thing, check the Id's  If they are not equal, then
+			// no point in checking anything else
+			equal = myId.equals( otherPlayer.myId );
+			// Next check the stats
+			if( equal )
+			{
+				for( int i = 0; i < 4 && equal; i++ )
+					equal = (stats[i] == otherPlayer.stats[i]);
+			}
+			// At this point, it should be well known if the they are equal
+			// or not, since a character's stats (and level, but
+			// stats are based on level) are the only thing which can change...
+			// however, just to be sure, check everything
+			equal =  ( ( name.equals( otherPlayer.name ) ) &&
+				   ( clas == otherPlayer.clas ) &&
+				   ( level == otherPlayer.level ) && 
+				   ( sex == otherPlayer.sex ) );			
+			retVal = equal;
+d269 15
+a283 1
+	
+d333 2
+d492 16
+a507 7
+	 /**
+	  * Return whether or not this player is in combat
+	  */
+	 public boolean isInCombat()
+	 {
+	 	return inCombat;
+	 }
+d509 7
+a515 7
+	 /**
+	  * Returns whether or not the player has a mob for a target
+	  */
+	 public boolean hasMobTarget() 
+	 {
+	 	return myMobTarget != null;
+	 }
+d517 6
+a522 6
+	 /**
+	  * Clears the target data 
+	  */
+	 public void clearTargetData()
+	 {
+	 	myMobTarget = null;
+d525 1
+a525 1
+	 }
+d527 3
+a529 3
+	 public void incrementExp( int amount )
+	 {
+	 	currentExp += amount;
+d532 1
+a532 1
+	 }
+d534 5
+a538 5
+	 /**
+	  * Returns the amount of hp the player currently has
+	  */
+	 public int getHP()
+	 {
+d540 1
+a540 1
+	 }
+d542 7
+a548 7
+	 /**
+	  * Return the player's maximum hp
+	  */
+	 public int getMaxHP()
+	 {
+	 	return maxHP;
+	 }
+d550 5
+a554 2
+	 public void ressurect()
+	 {
+d557 2
+a558 2
+		clearTargetData();
+	 }
+d587 1
+d617 1
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.3 2004/06/16 19:58:46 rjw2183 Exp $
+d319 2
+a320 1
+		 	File theFile = new File( "player.dat" );
+d582 1
+a582 1
+	public static PlayerCharacter loadCharacterDataFromFile( Game handle )
+d584 2
+a585 1
+		File characterFile = new File( "player.dat" );
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.2 2004/06/15 19:52:00 rjw2183 Exp rjw2183 $
+d31 7
+a37 3
+	private MobKey myMobTarget;
+	private boolean inCombat;
+	private Eoid myPlayerTarget;
+d72 1
+d78 2
+a79 1
+	private PlayerCharacter( String name, int str, int con, int dex, int intg, int sex, int clas, Game handle )
+d95 4
+d113 1
+a113 1
+		int str, con, dex, intg;
+d120 1
+d128 1
+d130 2
+a131 1
+		return new PlayerCharacter( comm.name, str, con, dex, intg, comm.sex, comm.clas, handle );
+d301 6
+d308 4
+a430 1
+	
+d432 2
+a433 2
+	  * Registers this mob at the player's target
+	  * @@param key The key of the mob
+d435 1
+a435 1
+	 public void registerTarget( MobKey key )
+d437 10
+a446 2
+	 	myMobTarget = key;
+		inCombat = true;
+a448 6
+	 public void registerPlayerTarget( Eoid pId )
+	 {
+	 	myPlayerTarget = pId;
+		inCombat = true;
+ 	 }
+		
+d450 1
+a450 1
+	  * Returns the mob key of the player's mob target
+d452 1
+a452 1
+	 public MobKey getTarget()
+d454 8
+a461 7
+	 	return myMobTarget;
+	 }	
+	 
+	 public Eoid getPTarget()
+	 {
+	 	return myPlayerTarget;
+	 }
+d471 8
+d488 7
+d496 23
+d540 1
+d542 3
+d569 5
+a573 1
+		inCombat = ((Boolean)in.readObject()).booleanValue();	
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.1 2004/06/10 17:00:08 rjw2183 Exp $
+d33 1
+d418 6
+d433 4
+d451 1
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: PlayerCharacter.java,v 1.16 2004/06/08 15:12:47 rjw2183 Exp rjw2183 $
+d31 2
+d394 31
+d427 17
+d464 2
+d488 3
+a490 1
+		equipment[LEFT_HAND] = (String)in.readObject();		
+d510 2
+a511 1
+			retVal.myHandle = handle;	
+@

@@ -1,0 +1,63 @@
+head	1.2;
+access;
+symbols;
+locks
+	rjw2183:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The PlayerCacheListenr is an interfacer for any object that wishes to 
+ * be informed when a player has timd out.
+ *
+ * @@author: Robert Whitcomb
+ * @@file: $Id: PlayerCacheListener.java,v 1.1 2004/06/10 18:22:40 rjw2183 Exp $
+ */
+ 
+ package m2mimud.game;
+ 
+ import edu.rit.m2mi.Eoid;
+ public interface PlayerCacheListener
+ {
+ 	/**
+	 * Used to report a player timeout
+	 * @@param playerId The id of the player that timed out
+	 */
+	public void playerTimeout( Eoid playerId );
+ }  
+ 
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@file: $Id: PlayerCacheListener.java,v 1.2 2004/05/06 22:00:25 rjw2183 Exp rjw2183 $
+d14 5
+a18 1
+ 	public void playerTimeout( Eoid playerId );
+@

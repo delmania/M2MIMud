@@ -1,0 +1,3239 @@
+head	1.24;
+access;
+symbols;
+locks
+	rjw2183:1.24; strict;
+comment	@# @;
+
+
+1.24
+date	2005.01.13.15.47.06;	author rjw2183;	state Exp;
+branches;
+next	1.23;
+
+1.23
+date	2005.01.06.17.38.24;	author rjw2183;	state Exp;
+branches;
+next	1.22;
+
+1.22
+date	2004.12.16.16.39.30;	author rjw2183;	state Exp;
+branches;
+next	1.21;
+
+1.21
+date	2004.12.14.17.22.24;	author rjw2183;	state Exp;
+branches;
+next	1.20;
+
+1.20
+date	2004.12.10.02.29.16;	author rjw2183;	state Exp;
+branches;
+next	1.19;
+
+1.19
+date	2004.11.11.04.28.40;	author rjw2183;	state Exp;
+branches;
+next	1.18;
+
+1.18
+date	2004.10.21.02.47.24;	author rjw2183;	state Exp;
+branches;
+next	1.17;
+
+1.17
+date	2004.09.24.03.43.35;	author rjw2183;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2004.09.23.03.59.57;	author rjw2183;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2004.09.22.03.27.36;	author rjw2183;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2004.09.10.02.32.56;	author rjw2183;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2004.08.16.18.30.07;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.08.12.01.21.22;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.08.11.20.06.36;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.07.22.19.33.30;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.07.16.18.35.43;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.07.06.19.58.30;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.07.01.19.49.55;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.06.29.20.00.03;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.23.19.57.33;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.17.19.19.26;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.15.19.52.00;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.11.19.16.47;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.17.00.08;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.24
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The world class is the, for lack if a better word, the world.  It contains data
+ * about the world.
+ * 
+ * @@author: Robert Whitcomb
+ * @@version: $Id: World.java,v 1.23 2005/01/06 17:38:24 rjw2183 Exp rjw2183 $
+ */
+ package m2mimud.state;
+ 
+ import java.io.*;
+ import java.util.HashMap;
+ import java.util.Vector;
+ import java.util.Iterator;
+ import java.util.Random;
+ import java.awt.Color;
+ import m2mimud.command.IntCommand;
+ import m2mimud.command.special.HouseCreationCommand;
+ import m2mimud.communications.Game;
+ import edu.rit.m2mi.Eoid;
+ 
+ public class World
+ implements Externalizable
+ {		
+	private HashMap theWorld; // the array of roosm which makes up the world
+	int dimX, dimY;
+	
+	// These strings get printed out whenever the user enters into a room.
+	private String[] grassString;
+	private String[] woodsString;
+	private String[] waterString;	
+	private String exitString;
+	private String pondString;
+	private String pondWoodString;
+		
+	
+	private String myName;
+	
+	// The various string used for descriptive purpises
+	private String armorString;
+	private String weaponString;
+	private String itemString;	
+	private String[] broadcastString;
+	private String[] mercDesc;
+	private Eoid houseId; // the id of the house that the user is currently in	
+		
+	private MapViewer myMapViewer; // the viewer for the map of the world
+	private GameState myState; // the state of the session
+	
+	/**
+	 * The constructor used by readExternal function
+	 */
+	public World()
+	throws Exception
+	{
+		theWorld = new HashMap();							
+		broadcastString = new String[3];
+		grassString = new String[6];
+		woodsString = new String[6];
+		waterString = new String[6];
+		mercDesc = new String[3];						
+		initializeStrings();
+		myName = null;	
+		houseId = null;			
+	}
+	
+	/**
+	 * Constructor 
+	 * @@param id The id of the unit created the world
+	 * @@param theState The GameState object this world will use
+	 */
+ 	public World( GameState theState )
+	throws Exception
+	{
+		theWorld = new HashMap();		
+		dimX = 100;
+		dimY = 100;
+		for( int x = 0; x < dimX; x++ )
+			for( int y = 0; y < dimY; y++ )
+			{
+				XYloc roomLoc = new XYloc( x, y );
+				Room tempRoom = new Room( roomLoc,
+				Room.GRASSY_FIELD, dimX, dimY );
+				theWorld.put( roomLoc, tempRoom );
+			}		
+		broadcastString = new String[3];
+		grassString = new String[6];
+		woodsString = new String[6];
+		waterString = new String[6];
+		mercDesc = new String[3];		
+		initializeStrings();	
+		myState = theState;
+		myName = "default";
+		houseId = null;
+	}
+	
+	/**
+	 * Returns the maximum allowable x value for the map.
+	 */
+	public int getMaxX()
+	{
+		return dimX;
+	}
+	
+	/**
+	 * Returns the maximum allowable y for the map.
+	 */
+	public int getMaxY()
+	{
+		return dimY;
+	}
+	
+	/** 
+	 * Returns the name of the world
+	 */
+	public String getName()
+	{
+		return myName;
+	}
+		
+	/**
+	 * Sets this world's map viewer.
+	 * @@param theViewer The MpaViewer object.
+	 */	
+	public void setViewer( MapViewer theViewer )
+	{
+		myMapViewer = theViewer;
+		myMapViewer.updateMap( buildMapData(), myState.getPlayer().getLocation() );		
+	}
+	
+	/**
+	 * Loads the mob data
+	 */
+	private MobData loadMobData() 
+	throws IOException, ClassNotFoundException, Exception
+	{
+		File mobFile = new File( "data/mobs.dat" );
+		MobData retVal;
+		if( !mobFile.exists() )
+			throw new Exception( "Mob data not found." );
+		else
+		{
+			FileInputStream fileStream = new FileInputStream( mobFile );
+			ObjectInputStream mobStream = new ObjectInputStream( fileStream );
+			retVal = (MobData)mobStream.readObject();
+			mobStream.close();
+			fileStream.close();
+		}
+		return retVal;
+	}
+	
+	/**
+	 * Randomly spawns the 9 merchants onto the map
+	 */
+	public synchronized void spawnMerchants( MerchantListener listener )
+	{
+		addMerchants( Merchant.ARMOR, listener );
+		addMerchants( Merchant.WEAPONS, listener );
+		addMerchants( Merchant.ITEM, listener );		
+	}
+	
+	/** 
+	 * helper function used to spawn the merchants
+	 */
+	private void addMerchants( int type, MerchantListener listener )
+	{
+		Random locPRNG = new Random();
+		XYloc tempLoc = null;
+		Room theRoom = null;		
+		for( int i = 0; i < 3; i++ )
+		{			
+			int numTimes = 0;
+			do
+			{
+				tempLoc = new XYloc( locPRNG.nextInt( dimX ), locPRNG.nextInt( dimY ) );				
+				theRoom = (Room)theWorld.get( tempLoc );
+				numTimes++;
+			}
+			while( ( myState.has( GameState.MERCHANT, tempLoc ) || 
+			       theRoom.getRoomType() == Room.WATER  ) &&
+			       numTimes < dimX * dimY );	
+
+			if( theRoom.getRoomType() != Room.WATER )
+			{
+				Merchant temp = new Merchant( type, tempLoc, listener );
+				System.out.println( "Adding merchant " + type + " to " + tempLoc );
+				temp.scheduleNextMessage();
+				myState.add( GameState.MERCHANT, temp );
+			}
+		}
+		
+		if( type == Merchant.WEAPONS )
+		{
+			Merchant fixedMerchant = new Merchant( type, new XYloc( 0, 0 ), listener );
+			fixedMerchant.scheduleNextMessage();
+			myState.add( GameState.MERCHANT,  fixedMerchant );
+			
+		}
+	}
+	
+	
+	/**
+	 * Spawns the mobs in the game
+	 * @@param listener The listener for the mobs
+	 */
+	public void spawnMobs( MobListener theListener )
+	throws Exception
+	{		
+		MobData myMobData = loadMobData();		
+		Iterator theMobs = myMobData.getMobs();
+		
+		int numMobs = 0;
+		if( dimX < dimY )
+			numMobs = dimX / myMobData.size();
+		else
+			numMobs = dimY / myMobData.size();
+		Random locPRNG = new Random();
+		
+		while( theMobs.hasNext() )
+		{
+			
+			// Essentiallly, what's done here is that the information for the
+			// mob is loaded from the MobData class. The system then searches
+			// for a room that has no water and no merchant, creates a mob using
+			// the load information, and then places them into the room, if one is 
+			// found.
+			int currentId = ((Integer)theMobs.next()).intValue();
+			for( int currentKey = 0; currentKey < numMobs; currentKey++ )
+			{				
+				String name = myMobData.lookupName( currentId );
+				int hp = myMobData.lookupHP( currentId );
+				int damage = myMobData.lookupDamage( currentId );
+				long spd = myMobData.lookupAtkSpd( currentId );
+				int gold = myMobData.lookupGoldAmount( currentId );
+				int exp = myMobData.lookupExpPoints( currentId );
+				String drop = myMobData.lookupDrops( currentId );
+				MobKey tempKey = new MobKey( currentId, currentKey );				
+				XYloc initialLoc = null;
+                                Room theRoom = null;
+                                int numTimes = 0;
+				do
+				{
+					 int xloc = locPRNG.nextInt( dimX );
+					 int yloc = locPRNG.nextInt( dimY );
+					 initialLoc = new XYloc( xloc, yloc );
+                                         theRoom = (Room)theWorld.get( initialLoc );
+                                         numTimes++;
+				}
+				while( ( myState.has( GameState.MERCHANT, initialLoc ) ||
+                                         theRoom.getRoomType() == Room.WATER ) &&
+                                         numTimes < dimX * dimY );
+								
+				if( theRoom.getRoomType() != Room.WATER )
+                                {
+                                    Mob tempMob = new Mob( tempKey, name, initialLoc,
+                                    hp, damage, spd, this, theListener, gold, exp, drop );
+                                    myState.add( GameState.MOB, tempMob );
+                                    theRoom.addMob( tempMob.getKey() );								
+                                }
+			}
+		}	
+	}
+				
+	/**
+	 * Refreshes the given merchant's message.
+	 * @@param type The type f merchant
+	 * @@param location the location of the merchant
+	 */
+	public void refreshMerchantTime( int type, XYloc location )
+	{
+		((Merchant)myState.get( GameState.MERCHANT, location )).scheduleNextMessage();
+	}
+	  
+	/**
+         * This warps the player to the location specificed by the two parameters
+         * @@param x, y The (x, y) coordinates for the rom to warp to
+         */	  
+	public void warp( int x, int y )
+	{
+	 	XYloc theLoc = myState.getPlayer().getLocation();
+		theLoc.x = x;
+		theLoc.y = y;
+		myMapViewer.updateMap( buildMapData(), theLoc );
+	}
+	 
+         
+         /**
+          * Returns the type of room the player is currently in
+          */
+         public int getCurrentRoomType()
+         {          
+             Room theRoom = (Room)theWorld.get( myState.getPlayer().getLocation() );
+             return theRoom.getRoomType();
+         }
+	 
+	 /**
+	  * Gets the description of the room at the given loc;
+	  * @@param loc The loc of the room.
+	  * @@return The description of the room in a string.
+	  */
+	 public TextMessage currentAreaDescription()
+	 {                                                                                
+		TextMessage retVal = new TextMessage();
+		PlayerCharacter myPlayer = myState.getPlayer();
+		XYloc currentLoc = myPlayer.getLocation();
+		if( myPlayer.isInHouse() )
+		{
+			House theHouse = (House)myState.get( GameState.HOUSE, houseId );
+			retVal.addString
+				( "You are in " + theHouse.getOwnerName() + "\'s house." ); 
+			retVal.addString( theHouse.getDescription() );
+		}
+		else
+		{
+			
+			// Get the start of the description based on the type of tile the
+			// player is in
+			Room temp = (Room)theWorld.get( currentLoc );
+			if( temp.getRoomType() == Room.GRASSY_FIELD )
+				retVal.addString( grassString[myState.getTime()] );
+			else if( temp.getRoomType() == Room.WOODS )
+				retVal.addString(woodsString[myState.getTime()] );
+			else
+				retVal.addString( waterString[myState.getTime()] );
+		
+			// If there's a pond, add it to the description
+			if( myState.has( GameState.POND, currentLoc ) )
+			{
+				if( temp.getRoomType() == Room.GRASSY_FIELD )
+					retVal.addString( pondString );
+				else
+					retVal.addString( pondWoodString );
+			}
+			
+			// If there's a merchant, add the appropiate merchant description
+			if( myState.has( GameState.MERCHANT, currentLoc ) )
+				retVal.addString( mercDesc[((Merchant)myState.get( GameState.MERCHANT,
+				                  currentLoc )).getType()] );
+		
+
+			// This loop does a few things.  Primarily, it examines any houses
+			// that are in the room, gets the names and ids of their owners, and
+			// add that information to the description.  However it also performs
+			// some checking, as it checks to make sure that the location of the current
+			// room and the location value stored in the house object are the same.  If not,
+			// the house is removed from the room.  It's important to remember that the room has
+			// is the id of owner of the house, as the house object itself is stored in the
+			// GameState object. 
+			if( temp.hasHouses() )	
+			{
+				StringBuffer houseString = new StringBuffer( "You see the following houses:\n");
+				Iterator houseIter = temp.getHouses();
+				int i = 0;
+				
+				Vector removeHouses = new Vector();			
+				// this preens houses on the fly.  For every house, it checks to make sure that
+				// the house's location is the same at the currentLoc value.  If it is, it
+				// adds it to the house  If not, it removes te house
+				while( houseIter.hasNext() )
+				{
+					Eoid houseId = (Eoid)houseIter.next();
+					House tempHouse = (House)myState.get( GameState.HOUSE, houseId );
+					if( tempHouse.getLocation().equals( currentLoc ) )
+					{
+						houseString.append( "(" + i + ") " + tempHouse +"\n" );		
+						i++;
+					}
+					else
+						removeHouses.add( houseId );								
+				}				
+				houseIter = removeHouses.iterator();					
+				while( houseIter.hasNext() )
+					temp.removeHouse( (Eoid)houseIter.next() );
+			
+				if( temp.hasHouses() )
+					retVal.addString( houseString, Color.green.darker().darker() );
+			}
+		
+			// This loop examines every mob in the room. If the mob is not currently fighting 
+			// a player or is dead, it adds the name of the mob to the description.  If 
+			// players are fighting a mob, that is handled by the GameSystem object			
+			if( temp.getMobCount() > 0 )
+			{
+				Iterator mobs = temp.getMobs();
+				while( mobs.hasNext() )
+				{
+					Mob theMob = (Mob)myState.get( GameState.MOB, (MobKey)mobs.next() );
+					if( theMob.isAlive() )
+					{
+						if( !theMob.isUnderAttack() )			
+							retVal.addString( "There is a " + theMob.getName() + " here.", 
+							Color.yellow.darker() );					
+					}
+					else
+						retVal.addString( "The corpse of a " + theMob.getName() + " is " +
+						"lying on the ground.", Color.cyan.darker() );
+				}
+			}	
+		
+			retVal.addString( exitString, Color.blue.brighter() );
+			retVal.addString( temp.getExitString(), Color.blue.brighter() );
+		}	
+		return retVal;
+	 } 
+	
+	/**
+	 * Returns the broadcast string for the given merchant type
+	 * @@param: type The merchant type
+	 */
+	public String getMerchantBroadcast( int type )
+	{
+		return broadcastString[type];
+	}
+	
+	/**
+	 * Returns the type of merchant that is in the current room, if any.
+	 * Returns -1 is there is no merchant
+	 */
+	public int getMerchantType()
+	{
+	 	XYloc theLoc = myState.getPlayer().getLocation();
+		int retVal = -1;		
+		if( myState.has( GameState.MERCHANT, theLoc ) )
+			retVal = ((Merchant)myState.get( GameState.MERCHANT, 
+			         theLoc )).getType();
+		return retVal;
+	}
+		
+	/**
+	 * Determines if the given loc is same one the player is currently at.
+	 * @@param: theLoc The loc to check                                                                         
+	 */	 
+	public boolean checkLoc( XYloc theLoc )
+	{
+		return myState.getPlayer().getLocation().equals( theLoc );		
+	}
+		
+	/**
+	 * Performs the a move in the given direction.  If 
+	 * the move can not be done, this returns null.
+	 * @@param direction The direction to move in
+	 */
+	public UserMove doPlayerMove( int direction )
+	{
+		UserMove retVal = null;
+		if( IntCommand.NORTH <= direction && direction <= IntCommand.WEST )
+		{
+			// Get the current room and make sure that a move in that direction
+			// is valid.
+			XYloc currentLoc = myState.getPlayer().getLocation();
+			Room tempRoom = (Room)theWorld.get( currentLoc );
+			if( tempRoom.checkMove( direction )  == true )
+			{
+				XYloc oldLoc = new XYloc( currentLoc );
+				switch( direction )
+				{
+					case IntCommand.NORTH:
+						currentLoc.y++;
+					break;
+					case IntCommand.SOUTH:
+						currentLoc.y--;
+					break;
+					case IntCommand.EAST:
+						currentLoc.x++;
+					break;
+					case IntCommand.WEST:
+						currentLoc.x--;
+					break;
+				}
+				retVal = new UserMove( direction, currentLoc, oldLoc );
+				myMapViewer.updateMap( buildMapData(), currentLoc );
+			}
+		}		
+		return retVal;		
+	}
+	
+	/** 
+	 * Determins if the mob can move in the given direction
+	 * @@param mobId the Id of the mob
+	 * @@param mobType Type of the mob
+	 * @@param direction Direction to go
+	 * @@param loccation The current location of the mob
+	 */
+	public MobMove checkMobMove( MobKey theKey, int direction )
+	{		
+		int dir = -1;
+		Mob theMob = (Mob)myState.get( GameState.MOB, theKey );
+		MobMove retVal = null;
+		if( theMob != null )
+		{
+	                XYloc newLoc = new XYloc( theMob.getCurrentLocation() );
+			switch( direction )
+			{
+				case IntCommand.NORTH:
+					newLoc.y++;
+				break;
+				case IntCommand.SOUTH:
+					newLoc.y--;
+				break;
+				case IntCommand.EAST:
+					newLoc.x++;
+				break;
+				case IntCommand.WEST:
+					newLoc.x--;
+				break;
+			}
+		
+			if( newLoc.x < 0 )
+				newLoc.x = 0;
+			if( newLoc.y < 0 )
+				newLoc.y = 0;
+                	
+	                if( newLoc.x >= dimX )
+        	            newLoc.x = dimX - 1;
+                
+	                if( newLoc.y >= dimY )
+        	            newLoc.y = dimY - 1;
+						
+			if( !myState.has( GameState.MERCHANT, newLoc ) )
+				dir = direction;
+		
+			retVal =  new MobMove( theKey, dir, newLoc, theMob.getCurrentLocation() );				
+		}
+		return retVal;
+	}
+	
+	/**
+	 * Updates a mob's location in the world
+	 * @@param mobId The id of the mob
+	 * @@param mobType The type of the mob
+	 * @@param oldLoc The old location of the mob
+	 * @@param newLoc The new location of the mob
+	 */
+	public boolean moveMob( MobMove theMove )
+	{
+				
+		boolean retVal = false;			
+		XYloc oldLoc = theMove.getLoc( MoveData.FROM );
+		Mob theMob = (Mob)myState.get( GameState.MOB, theMove.getKey() );
+		if( !theMob.getCurrentLocation().equals( oldLoc ) )
+			oldLoc = new XYloc( theMob.getCurrentLocation() );
+			
+		XYloc newLoc = theMove.getLoc( MoveData.TO );		
+		Room tempRoom = (Room)theWorld.get( oldLoc );		
+		if( tempRoom.hasMob( theMove.getKey() ) )
+		{			
+			theMob.updateLocation( newLoc );
+			tempRoom.removeMob( theMob.getKey() );
+			Room newRoom = (Room)theWorld.get( newLoc );                        
+                        newRoom.addMob( theMob.getKey() );	
+			retVal = true;				
+		}
+		return retVal;
+	} 
+	
+	/**
+	 * Another version of move mob, this one is more for internal use
+	 * @@param theKey the key of th mob to move
+	 * @@param newLoc the new location of the mob
+	 */
+	public void moveMob( MobKey theKey, XYloc newLoc )
+	{
+		Mob theMob = (Mob)myState.get( GameState.MOB, theKey );
+		((Room)theWorld.get( theMob.getCurrentLocation() )).removeMob( theKey );
+		theMob.updateLocation( newLoc );
+		((Room)theWorld.get( theMob.getCurrentLocation() )).addMob( theKey );
+	}
+	
+	/** 
+	 * Refrehes the mob's timer
+	 * @@param theKey The key of the mob to update	 
+	 */
+	public void refreshMobTimer( MobKey theKey )
+	{
+		((Mob)myState.get( GameState.MOB, theKey )).restartMovementTimer();
+	}
+		
+	/**
+	 * Removes the player from the world.
+	 * @@param handle The handle of the player to remove.
+	 */
+	public void removePlayer( Eoid playerId )
+	{
+		for( int x = 0; x < dimX; x++ )
+			for( int y = 0; y < dimY; y++ )
+				((Room)theWorld.get( new XYloc( x, y ) ) ).removePlayer( playerId );
+	}
+	
+	/**
+	 * Returns the first free mob of the given name.  A free mob
+	 * exists in the room and is not in comabt with any other player.
+	 * @@param name The name of the mob to get
+	 *
+	 */
+	public Mob getFreeMob( String name )
+	{
+		Mob retVal = null;
+		boolean validName = false;
+		int count = 0;
+		Iterator theMobs = ((Room)theWorld.get( myState.getPlayer().getLocation() )).getMobs();
+		while( theMobs.hasNext() && retVal == null )
+		{
+			Mob theMob = (Mob)myState.get( GameState.MOB, (MobKey)theMobs.next() );
+			if( theMob.getName().trim().equals( name.trim() ) )
+			{
+				if( theMob.isAlive() )
+				{									
+					if(  !theMob.isUnderAttack() )
+						retVal = theMob;
+				}
+			}
+		}	
+		return retVal;
+		
+	}
+	
+	/** 
+	 * Private function that reads the strings.dat file and initialzes
+	 * some values in the World object
+	 */
+	private void initializeStrings()
+	throws Exception
+	{
+		
+		File stringFile = new File( "data/strings.dat" );
+		if( !stringFile.exists() )
+			throw new Exception( "string.dat was not found, can not continue." );
+		
+		FileInputStream inStream = new FileInputStream( stringFile );
+		ObjectInputStream objStream = new ObjectInputStream( inStream );
+		
+		grassString = (String[])objStream.readObject();
+		woodsString = (String[])objStream.readObject();
+		waterString = (String[])objStream.readObject();
+		pondString  = (String)objStream.readObject();
+		pondWoodString = (String)objStream.readObject();
+		exitString  = (String)objStream.readObject();
+		mercDesc    = (String[])objStream.readObject();
+		broadcastString = (String[])objStream.readObject();
+		
+		objStream.close();
+		inStream.close();
+	}
+	
+	/**
+	 * Returns the state object associated with this world
+	 */
+	public GameState getState()
+	{
+		return myState;
+	}
+	
+	/**
+	 * Loads the world data from a file. Returns true if the world was loaded from a file
+	 * @@param theWorld The world object to load the data into
+	 */
+	public static World getWorld( String name )
+	{
+		String fileName = new String( "states/" + name + ".dat" );
+		File worldFile = new File( fileName );
+		World tempWorld = null;
+		if( worldFile.exists() )		
+		{
+			try
+			{
+				FileInputStream inStream = new FileInputStream( worldFile );
+				ObjectInputStream objStream = new ObjectInputStream( inStream );
+				tempWorld = (World)objStream.readObject();
+				tempWorld.myState = (GameState)objStream.readObject();
+				inStream.close();
+				objStream.close();				
+			}
+			catch( Exception e )	 
+			{
+				e.printStackTrace();
+				System.exit( 1 );                                                                                           
+
+			}
+		}		
+		return tempWorld;
+	}
+		
+	/** 
+	 * Saves this world oject to a file
+	 */
+	 public void saveWorldData( String name )
+	 {
+	 	try
+		{			
+		 	myState.clear( GameState.MOB );
+			myState.clear( GameState.MERCHANT );
+			myState.clearHouses();
+			String fileName = new String( "states/" + name + ".dat" );
+			File worldFile = new File( fileName );
+			FileOutputStream outStream = new FileOutputStream( worldFile );
+			ObjectOutputStream objStream = new ObjectOutputStream( outStream );
+			objStream.writeObject( this );
+			objStream.writeObject( myState );
+			objStream.flush();
+			objStream.close();
+			outStream.flush();
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+			System.exit( 1 );
+		}
+	 }
+	 
+	 /**
+	  * Updates a player's location in the world
+	  * @@param: theMove Contains the information needed to do the move.
+	  */
+	 public void processMove( UserMove theMove )
+	 {
+	 	XYloc from = theMove.getLoc( MoveData.FROM );
+		XYloc to = theMove.getLoc( MoveData.TO );
+		PlayerCharacter thePlayer = (PlayerCharacter)myState.get( GameState.PLAYER, theMove.getUser() );		
+		if( !thePlayer.getLocation().equals( from ) )
+			from = new XYloc( thePlayer.getLocation() );
+		((Room)theWorld.get( from )).removePlayer( theMove.getUser() );
+		((Room)theWorld.get( to )).addPlayer( theMove.getUser() );
+		((PlayerCharacter)myState.get( GameState.PLAYER, theMove.getUser() )).updateLocation( to );		
+	 }	
+		 
+	 /**
+	  * Instantly moves the player from one spot to another.
+	  * @@param user The user to move.
+	  * @@param from The location the player warped from
+	  * @@param to The location the user warped to
+	  */
+	 public void performWarp( Eoid playerId, XYloc to )
+	 {
+	 	PlayerCharacter player = (PlayerCharacter)myState.get( GameState.PLAYER, playerId );
+		((Room)theWorld.get( player.getLocation() )).removePlayer( playerId );
+		((Room)theWorld.get( to )).addPlayer( playerId );
+		player.updateLocation( to );		
+	 }
+	 
+	 /**
+	  * Returns an iter which be used to access the players currently
+	  * present in the room.
+	  */
+	 public Iterator getCurrentAreaPlayers()
+	 {
+	 	Iterator retVal = null;
+		PlayerCharacter myPlayer = myState.getPlayer();
+		if( myPlayer.isInHouse() )
+			retVal = ((House)myState.get( GameState.HOUSE, houseId )).getPlayers();
+		else
+			retVal = ((Room)theWorld.get( myPlayer.getLocation() )).getPlayers();
+		return retVal;
+	 }
+	
+	 /**
+	  * Returns whether or not the current room has players
+	  */ 
+	 public boolean currentAreaHasPlayers()
+	 {
+	 	boolean retVal = false;
+		PlayerCharacter myPlayer = myState.getPlayer();
+		if( myPlayer.isInHouse() )
+			retVal = ((House)myState.get( GameState.HOUSE, houseId )).hasPlayers();
+		else
+			retVal = ((Room)theWorld.get( myPlayer.getLocation() )).hasPlayers();
+		return retVal;
+	 }
+	 
+	 /**
+	  * Digs a pond in the current location
+	  * If there already is a pond, this returns false
+	  */
+	 public boolean digPond()
+	 {
+	 	XYloc theLoc = myState.getPlayer().getLocation();
+		boolean retVal = false;
+		Room tempRoom = (Room)theWorld.get( theLoc );
+		int roomType = tempRoom.getRoomType();
+		if( !myState.has( GameState.POND, myState.getPlayer().getLocation() ) && roomType != Room.WATER )
+		{
+			retVal = true;
+			myState.add( GameState.POND, new XYloc( theLoc ) );
+		}
+		return retVal;
+	 }
+	 
+	 /**
+	  * Marks the room at the location as having a pond.
+	  */
+	  public void setPondAt( XYloc location )
+	  {
+	  	myState.add( GameState.POND, location );
+	  }
+	  
+	 /**
+	  * Clears the merchants and mobs from the game.
+	  */
+	 public void clearSessionInfo()
+	 {
+		myState.clear( GameState.MERCHANT );
+		myState.clear( GameState.MOB );
+		for( int x = 0; x < dimX; x++ )
+			for( int y = 0; y < dimY; y++ )
+				((Room)theWorld.get( new XYloc( x, y ))).clear();
+	}
+	 
+	/** 
+	 * Places a house at the current location
+	 * @@param command The house creation command which contains the information
+	 * needed to create the house
+	 * @@param name The name of the character who placed the house
+	 */
+	 public void placeHouse( House theHouse )
+	 {
+		XYloc houseLoc = theHouse.getLocation();		
+		((Room)theWorld.get( houseLoc )).addHouse( theHouse );
+		myState.add( GameState.HOUSE, theHouse );
+	 }
+	 
+	 
+	 /**
+	  * Attempts to enter the house at the given index.
+	  * Returns true if the user enters the house, false otherwise
+	  * @@param index The index of the house to enter.
+	  */
+	public boolean enterHouse( int houseIndex )
+	{	
+		boolean retVal = false;
+		houseId = ((Room)theWorld.get( myState.getPlayer().getLocation() )).getHouse( houseIndex );
+		House theHouse = (House)myState.get( GameState.HOUSE, houseId );
+		if( theHouse != null && theHouse.canEnter() )
+		{
+			retVal = true;
+			myState.getPlayer().enterHouse( theHouse.getOwner() );						
+		}
+		return retVal;		
+	}
+	
+	/**
+	 * Causes the player to leave a house
+	 */ 
+	public void leaveHouse()
+	{
+		((PlayerCharacter)myState.get( GameState.PLAYER, myState.getPlayer().getId() )).leaveHouse();
+		houseId = null;
+	}
+	  
+	/**
+	 * Used to build the array sent to the map viewer object
+	 */
+	private String[] buildMapData()
+	{
+		String[] retVal = new String[8];
+		int x = myState.getPlayer().getLocation().x;
+		int y = myState.getPlayer().getLocation().y;
+		
+
+		retVal[MapViewer.NORTH] = processRoomType( new XYloc( x, y+1 ) );
+		retVal[MapViewer.SOUTH] = processRoomType( new XYloc( x, y-1 ) );
+		retVal[MapViewer.EAST] = processRoomType( new XYloc( x+1, y  ) );
+		retVal[MapViewer.WEST] = processRoomType( new XYloc( x-1, y ) );
+		
+		retVal[MapViewer.NORTH_EAST] = processRoomType( new XYloc( x+1, y+1 ) );
+		retVal[MapViewer.NORTH_WEST] = processRoomType( new XYloc( x-1, y+1 ) );
+		retVal[MapViewer.SOUTH_EAST] = processRoomType( new XYloc( x+1, y-1 ) );
+		retVal[MapViewer.SOUTH_WEST] = processRoomType( new XYloc( x-1, y-1 ) );
+		return retVal;
+	}
+	
+	private String processRoomType( XYloc loc )
+	{
+		String retVal = "X";
+		if( ( loc.x >= 0 && loc.x < dimX ) &&
+		    ( loc.y >= 0 && loc.y < dimY ) )
+		{
+			switch( ((Room)theWorld.get( loc )).getRoomType() )
+			{
+				case Room.GRASSY_FIELD:
+					retVal = "g";
+				break;
+				case Room.WOODS: 
+					retVal = "t";
+				break;
+				case Room.WATER:
+					retVal = "w";
+				break;
+			}
+		}
+		return retVal;
+	}
+	
+	
+	
+	 /**
+	  * This function tells the world to rebuild itself using
+	  * the given configuration.  
+	  * @@param theConfig The WorldConfiguration object that contains
+	  * the new configuration information about the 
+	  */
+	 public void createWorld( WorldConfiguration theConfig )	
+	 {		
+		// Setup the name and dimesnion of the new world, clear out the
+		// hashmap of rooms, remove all houses from the map
+		myName = theConfig.getName();
+		dimX = theConfig.getDimension( WorldConfiguration.WIDTH );
+		dimY = theConfig.getDimension( WorldConfiguration.HEIGHT );
+		theWorld.clear();
+		myState.clear( GameState.HOUSE );
+		
+		// This loop simple examines the character map of the world.
+		// Using this information, it creates a room of the type specified by
+		// where it is in the map, and then places the newly created room into
+		// world hashmap keyed by its location
+		char[][] theMap = theConfig.getMap();
+		for( int y = dimY - 1; y >= 0; y-- )
+		{	
+			for( int x = 0; x < dimX; x++ )
+			{
+				XYloc key = new XYloc( x, y );
+				int desc = Room.GRASSY_FIELD;
+				if( theMap[x][y] == 'w' )
+					desc = Room.WATER;
+				else if( theMap[x][y] == 't' )
+					desc = Room.WOODS;
+					
+				Room value = new Room( key, desc, dimX, dimY );
+				theWorld.put( key, value );				
+			}		
+		}		
+		myMapViewer.updateMap( buildMapData(), myState.getPlayer().getLocation() );
+		myState.setConfig( theConfig );		
+	 }
+	 
+	 /** 
+	  * This places a player at the location they are currently listed
+	  * at 
+	  * @@param: player the player to place
+	  */
+	public void placePlayer( PlayerCharacter player )
+	{	 	
+		if( !myState.getPlayer().getId().equals( player.getId() ) )
+		{
+			//If the player indicates they are in a house, add them to that house.
+			if( !player.isInHouse() )			
+				((Room)theWorld.get( player.getLocation() )).addPlayer( player.getId() );
+			else
+			{
+				((House)myState.get( GameState.HOUSE, player.getHouse() ))
+					.addPlayer( player.getId() );
+			}
+		}
+	}
+	
+	 /**
+	  * Removes either a pond or a house from the world.
+	  * If the value of index is -1, ths removes a pond from the world, 
+	  * otherwise, this removes the house.
+	  * @@param index The index of the house
+	  */
+	 public void remove( int index )
+	 {
+	 	XYloc theLoc = myState.getPlayer().getLocation();
+		if( index == -1 )
+			myState.remove( GameState.POND, theLoc );
+		{			
+			Eoid tempHouse = ((Room)theWorld.get( theLoc )).getHouse( index );
+			if( tempHouse != null )
+			{
+				myState.remove( GameState.HOUSE, tempHouse );
+				((Room)theWorld.get( theLoc )).removeHouse( tempHouse );
+			}
+		}
+	 }
+	 
+	 /**
+	  * Places the selected player into the given house
+	  * This returns true if the locaton of the house is the same as the player's
+	  * @@param pId The id of the player
+	  * @@param houseId the is of the house
+	  */
+	 public void movePlayerIntoHouse( Eoid pId, Eoid houseId )
+	 {	 	
+		PlayerCharacter thePlayer = 
+			(PlayerCharacter)myState.get( GameState.PLAYER, pId );
+		House theHouse = 
+			(House)myState.get( GameState.HOUSE, houseId );
+		
+		
+		if( thePlayer != null && theHouse != null )
+		{
+			// This is really simple: remove the player from the room they are in
+			// and place them into the house.
+			// Just in case the unit is out of sync, do this
+			performWarp( thePlayer.getId(), theHouse.getLocation() );
+			
+			((Room)theWorld.get( thePlayer.getLocation() )).removePlayer
+				( thePlayer.getId() );			
+			thePlayer.enterHouse( theHouse.getOwner() );
+			theHouse.addPlayer( thePlayer.getId() );						
+		}	
+	 }
+	 
+	 /**
+	  * Moves the player out of the house
+	  * Retuerns true if the house is located in the same
+	  * room as the unit player is
+	  * @@param pId the id of the house
+	  * @@param houseId The id of the house
+	  */
+	 public void removePlayerFromHouse( Eoid pId, Eoid houseId )
+	 {	 			
+		PlayerCharacter thePlayer = 
+			(PlayerCharacter)myState.get( GameState.PLAYER, pId );
+		House theHouse = 
+			(House)myState.get( GameState.HOUSE, houseId );
+				
+		if( thePlayer != null && theHouse != null )
+		{
+			// Just the reverse of movePlayer into house,
+			// place the player into the room where the house was
+			theHouse.removePlayer( thePlayer.getId() );
+			performWarp( thePlayer.getId(), theHouse.getLocation() );
+			((Room)theWorld.get( theHouse.getLocation() )).addPlayer( thePlayer.getId() );	
+                        thePlayer.leaveHouse();
+		}
+		
+	 }
+	  
+	 /**
+	  * Returns the id  of the house the player is in
+	  */
+	 public Eoid getHouseId()
+	 {
+	 	return houseId;
+	 }
+	  
+	 /**
+	  * Write the world to output
+	  * @@param: out The output object to write to.
+	  */
+	 public void writeExternal( ObjectOutput out )
+	 throws IOException
+	 {
+			
+		out.writeObject( theWorld );		
+		out.writeObject( myName );
+		out.writeInt( dimX );
+		out.writeInt( dimY );
+		out.writeObject( houseId );
+	 }
+	 
+	/**
+	 * Reads the object from input
+	 * @@param: in The input object to read from 
+	 */
+	public void readExternal( ObjectInput in )
+	throws IOException, ClassNotFoundException
+	{				
+		theWorld = (HashMap)in.readObject();
+		myName = (String)in.readObject();
+		dimX = in.readInt();
+		dimY = in.readInt();
+		houseId = (Eoid)in.readObject();
+		
+	}	
+}
+@
+
+
+1.23
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.22 2004/12/16 16:39:30 rjw2183 Exp rjw2183 $
+d127 1
+a127 1
+		myMapViewer.updateMap( buildMapData(), myState.getPlayerLoc() );		
+d279 4
+a282 3
+	 	myState.getPlayerLoc().x = x;
+		myState.getPlayerLoc().y = y;
+		myMapViewer.updateMap( buildMapData(), myState.getPlayerLoc() );
+d291 1
+a291 1
+             Room theRoom = (Room)theWorld.get( myState.getPlayerLoc() );
+d303 2
+a304 2
+		PlayerCharacter myPlayer = (PlayerCharacter)myState.get( GameState.PLAYER, 
+		myState.getPlayerId() );
+d317 1
+a317 1
+			Room temp = (Room)theWorld.get( myState.getPlayerLoc() );
+d326 1
+a326 1
+			if( myState.has( GameState.POND, myState.getPlayerLoc() ) )
+d335 1
+a335 1
+			if( myState.has( GameState.MERCHANT, myState.getPlayerLoc() ) )
+d337 1
+a337 1
+				                  myState.getPlayerLoc())).getType()] );
+d362 1
+a362 1
+					if( tempHouse.getLocation().equals( myState.getPlayerLoc() ) )
+d420 3
+a422 2
+	 	int retVal = -1;		
+		if( myState.has( GameState.MERCHANT, myState.getPlayerLoc() ) )
+d424 1
+a424 1
+			         myState.getPlayerLoc() )).getType();
+d434 1
+a434 1
+		return myState.getPlayerLoc().equals( theLoc );		
+d449 2
+a450 1
+			Room tempRoom = (Room)theWorld.get( myState.getPlayerLoc() );
+d453 1
+a453 1
+				XYloc oldLoc = new XYloc( myState.getPlayerLoc() );
+d457 1
+a457 1
+						myState.getPlayerLoc().y++;
+d460 1
+a460 1
+						myState.getPlayerLoc().y--;
+d463 1
+a463 1
+						myState.getPlayerLoc().x++;
+d466 1
+a466 1
+						myState.getPlayerLoc().x--;
+d469 2
+a470 2
+				retVal = new UserMove( direction, myState.getPlayerLoc(), oldLoc );
+				myMapViewer.updateMap( buildMapData(), myState.getPlayerLoc() );
+d576 1
+a576 9
+	
+	/**
+	 * Get the location of the player
+	 */
+	public XYloc getCurrentPlayerLocation()
+	{
+		return myState.getPlayerLoc();
+	}
+	
+d599 1
+a599 1
+		Iterator theMobs = ((Room)theWorld.get( myState.getPlayerLoc() )).getMobs();
+d746 1
+a746 2
+		PlayerCharacter myPlayer = (PlayerCharacter)myState.get( GameState.PLAYER, 
+			myState.getPlayerId() );
+d750 1
+a750 1
+			retVal = ((Room)theWorld.get( myState.getPlayerLoc() )).getPlayers();
+d760 1
+a760 2
+		PlayerCharacter myPlayer = (PlayerCharacter)myState.get( GameState.PLAYER, 
+			myState.getPlayerId() );
+d764 1
+a764 1
+			retVal = ((Room)theWorld.get( myState.getPlayerLoc() )).hasPlayers();
+d774 3
+a776 2
+	 	boolean retVal = false;
+		Room tempRoom = (Room)theWorld.get( myState.getPlayerLoc() );
+d778 1
+a778 1
+		if( !myState.has( GameState.POND, myState.getPlayerLoc() ) && roomType != Room.WATER )
+d781 1
+a781 1
+			myState.add( GameState.POND, new XYloc( myState.getPlayerLoc() ) );
+d828 1
+a828 1
+		houseId = ((Room)theWorld.get( myState.getPlayerLoc() )).getHouse( houseIndex );
+d833 1
+a833 3
+			PlayerCharacter myPlayer = (PlayerCharacter)myState.get( GameState.PLAYER, 
+			myState.getPlayerId() );
+			myPlayer.enterHouse( theHouse.getOwner() );						
+d843 1
+a843 1
+		((PlayerCharacter)myState.get( GameState.PLAYER, myState.getPlayerId() )).leaveHouse();
+d853 2
+a854 2
+		int x = myState.getPlayerLoc().x;
+		int y = myState.getPlayerLoc().y;
+d929 1
+a929 1
+		myMapViewer.updateMap( buildMapData(), myState.getPlayerLoc() );
+d940 1
+a940 1
+		if( !myState.getPlayerId().equals( player.getId() ) )
+d961 5
+a965 5
+	 	if( index == -1 )
+			myState.remove( GameState.POND, myState.getPlayerLoc() );
+		else
+		{
+			Eoid tempHouse = ((Room)theWorld.get( myState.getPlayerLoc() )).getHouse( index );
+d969 1
+a969 1
+				((Room)theWorld.get( myState.getPlayerLoc() )).removeHouse( tempHouse );
+@
+
+
+1.22
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.21 2004/12/14 17:22:24 rjw2183 Exp rjw2183 $
+d105 1
+a105 1
+	 * Returns the maximun allowable y for the map.
+d221 5
+d273 1
+a273 1
+        /**
+d276 3
+a278 3
+         */
+	 public void warp( int x, int y )
+	 {
+d282 1
+a282 1
+	 }
+d293 1
+a300 1
+
+d314 2
+d324 1
+d333 1
+d339 8
+d377 3
+d389 2
+a390 2
+						retVal.addString( "There is a " + theMob.getName() + " here.", 
+						Color.yellow.darker() );					
+d394 1
+a394 1
+					"lying on the ground.", Color.cyan.darker() );
+d417 2
+a418 2
+	 public int getMerchantType()
+	 {
+d424 1
+a424 1
+	 }
+a428 1
+
+d445 2
+d567 1
+a567 3
+	 * @@param mobType Thre type of mob
+	 * @@param mobId thr Mob's ID
+	 * @@param location the location of the mob
+d574 3
+d621 4
+d909 2
+d916 5
+a921 1
+		theWorld.clear();
+d938 1
+a938 2
+		myState.setConfig( theConfig );
+		
+d950 1
+d963 1
+a963 1
+	  * If the value of index is -1, ths removes the from the world, 
+@
+
+
+1.21
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.20 2004/12/10 02:29:16 rjw2183 Exp rjw2183 $
+d887 1
+@
+
+
+1.20
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.19 2004/11/11 04:28:40 rjw2183 Exp rjw2183 $
+d997 2
+a998 1
+			((Room)theWorld.get( theHouse.getLocation() )).addPlayer( thePlayer.getId() );		
+@
+
+
+1.19
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.18 2004/10/21 02:47:24 rjw2183 Exp rjw2183 $
+d23 1
+a23 7
+ {	
+	// Status code used to report to the GameSystem if the requested operation was succesful
+	public static final int NO_MORE_MERCHANTS = 1;
+	public static final int ROOM_HAS_MERCHANT = 2;
+	
+	public static final int NO_SUCH_MOB = 1;
+	public static final int NO_FREE_MOB = 2;
+d168 1
+d171 1
+d175 2
+d178 3
+a180 1
+			while( myState.has( GameState.MERCHANT, tempLoc ) );	
+d182 7
+a188 4
+			Merchant temp = new Merchant( type, tempLoc, listener );
+			System.out.println( "Adding merchant " + type + " to " + tempLoc );
+			temp.scheduleNextMessage();
+			myState.add( GameState.MERCHANT, temp );
+d191 1
+a191 1
+		if( type == Merchant.ITEM )
+d207 1
+a207 1
+	{
+d210 6
+d217 1
+d220 1
+d222 1
+a222 1
+			for( int currentKey = 0; currentKey < 1; currentKey++ )
+d231 23
+a253 7
+				MobKey tempKey = new MobKey( currentId, currentKey );
+				XYloc initialLoc = new XYloc( dimX/2, dimY/2  );				
+				Mob tempMob = new Mob( tempKey, name, initialLoc,
+				hp, damage, spd, this, theListener, gold, exp, drop );
+				Room theRoom = (Room)theWorld.get( initialLoc );
+				myState.add( GameState.MOB, tempMob );
+				theRoom.addMob( tempMob.getKey() );				
+d268 4
+d279 9
+d463 2
+a464 2
+		XYloc newLoc = new XYloc( theMob.getCurrentLocation() );
+		switch( direction )
+d466 27
+a492 18
+			case IntCommand.NORTH:
+				newLoc.y++;
+			break;
+			case IntCommand.SOUTH:
+				newLoc.y--;
+			break;
+			case IntCommand.EAST:
+				newLoc.x++;
+			break;
+			case IntCommand.WEST:
+				newLoc.x--;
+			break;
+		}
+		
+		if( newLoc.x < 0 )
+			newLoc.x = 0;
+		if( newLoc.y < 0 )
+			newLoc.y = 0;
+d494 2
+a495 2
+		if( !myState.has( GameState.MERCHANT, newLoc ) )
+			dir = direction;
+d497 3
+a499 1
+		return new MobMove( theKey, dir, newLoc, theMob.getCurrentLocation() );				
+d524 2
+a525 1
+			((Room)theWorld.get( newLoc )).addMob( theMob.getKey() );	
+a994 1
+			System.out.println( "Here" );
+@
+
+
+1.18
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.17 2004/09/24 03:43:35 rjw2183 Exp rjw2183 $
+d419 1
+a419 1
+	public MobMove checkMobMove( MobKey theKey, int direction, XYloc location )
+d422 2
+a423 1
+		XYloc oldLoc = new XYloc( location );
+d427 1
+a427 1
+				location.y++;
+d430 1
+a430 1
+				location.y--;
+d433 1
+a433 1
+				location.x++;
+d436 1
+a436 1
+				location.x--;
+d440 4
+a443 4
+		if( location.x < 0 )
+			location.x = 0;
+		if( location.y < 0 )
+			location.y = 0;
+d445 1
+a445 1
+		if( !myState.has( GameState.MERCHANT, location ) )
+d448 1
+a448 9
+		Mob theMob = (Mob)myState.get( GameState.MOB, theKey );
+		String name = null;
+		if( theMob != null )
+		{
+			name = theMob.getName();
+			return new MobMove( theKey, name, dir, location, oldLoc );		
+		}
+		else
+			return null;
+d461 1
+a461 1
+		boolean retVal = false;	
+d463 4
+d468 1
+a468 1
+		Room tempRoom = (Room)theWorld.get( oldLoc );
+d470 1
+a470 2
+		{
+			Mob theMob = (Mob)myState.get( GameState.MOB, theMove.getKey() );
+d644 3
+d824 4
+a827 2
+	  * Tells the world to configure itself using the configuration data
+	  * in the GameState
+d829 2
+a830 3
+	 public void createWorld()	
+	 {
+		WorldConfiguration theConfig = myState.getConfig();
+d853 1
+a856 54
+	 /**
+	  * Update this object's state variable with the new state
+	  * @@param newState The new state object
+	  */
+	 public void updateState( GameState newState, MobListener mobList,
+	                                          MerchantListener merchList )
+	 {	 						
+		// Some comments about this one. 
+		// It may seem odd that this takes in a new state
+		// and the reupdates the world based on it.  It may seem costly, too.
+		// It also may seem like there is room for duplicate data as well.
+		// However, rooms are smart enough NOT to add any data they already 
+		// have, so that takes cares of the duplicate data issue. 
+		
+		myState = newState;
+		
+		/* 
+		 * Populate the world with the neede data about the ponds, mobs, and houses
+		 */		
+		Iterator data = myState.getCollection( GameState.HOUSE );
+		while( data.hasNext() )
+		{
+			House temp = (House)data.next();
+			((Room)theWorld.get( temp.getLocation() )).addHouse( temp );
+		}
+		
+		data = myState.getCollection( GameState.MOB );
+		while( data.hasNext() )
+		{
+			Mob temp = (Mob)data.next();
+			temp.setList( mobList, this );
+			((Room)theWorld.get( temp.getCurrentLocation() )).addMob( 
+			temp.getKey() );
+			if( temp.isAlive() && !temp.isUnderAttack() )
+				temp.restartMovementTimer();
+		}
+		
+		// Set the merchant listener
+		data = myState.getCollection( GameState.MERCHANT );
+		while( data.hasNext() )
+		{
+			Merchant temp = (Merchant)data.next();
+			temp.setListener( merchList );
+		}
+		
+		// Now add in any players not found
+		data = myState.getCollection( GameState.PLAYER );
+		while( data.hasNext() )
+			placePlayer( (PlayerCharacter)data.next() );
+			
+		
+		
+	 } 
+	 
+@
+
+
+1.17
+log
+@Add a function to determine if a player is in the house.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.16 2004/09/23 03:59:57 rjw2183 Exp rjw2183 $
+d622 1
+d764 1
+a764 1
+			myPlayer.enterHouse();						
+d889 2
+d904 3
+a906 6
+		{
+			PlayerCharacter temp = (PlayerCharacter)data.next();		
+			// Don't add the player if he/she is the player controlled by this unit
+			if( !temp.getId().equals( myState.getPlayerId() ) && !temp.isInHouse() )							
+				((Room)theWorld.get( temp.getLocation() )).addPlayer( temp.getId() );							
+		}
+d918 9
+a926 1
+			((Room)theWorld.get( player.getLocation() )).addPlayer( player.getId() );
+d956 2
+a957 3
+	 public boolean movePlayerIntoHouse( Eoid pId, Eoid houseId )
+	 {
+	 	boolean retVal = false;
+d973 2
+a974 3
+			thePlayer.enterHouse();
+			theHouse.addPlayer( thePlayer.getId() );
+			retVal = myState.getPlayerLoc().equals( theHouse.getLocation() );
+a975 1
+		return retVal;		
+d985 2
+a986 3
+	 public boolean removePlayerFromHouse( Eoid pId, Eoid houseId )
+	 {	 	
+		boolean retVal = false;
+d991 1
+a991 5
+		
+		if( thePlayer == null )
+			System.out.println( "player is null." );
+		if( theHouse == null )
+			System.out.println( "house is null." );
+d999 1
+a999 2
+			((Room)theWorld.get( theHouse.getLocation() )).addPlayer( thePlayer.getId() );
+			retVal = thePlayer.getLocation().equals( myState.getPlayerLoc() );
+d1001 1
+a1001 1
+		return retVal;
+@
+
+
+1.16
+log
+@Added something
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.15 2004/09/22 03:27:36 rjw2183 Exp rjw2183 $
+d658 1
+a658 1
+	 public void performWarp( Eoid playerId, XYloc from, XYloc to )
+d660 2
+a661 1
+	 	((Room)theWorld.get( from )).removePlayer( playerId );
+d663 1
+a663 1
+		((PlayerCharacter)myState.get( GameState.PLAYER, playerId )).updateLocation( to );		
+d956 1
+a956 4
+		if( thePlayer == null )
+			System.out.println( "player is null." );
+		if( theHouse == null )
+			System.out.println( "house is null." );
+d962 1
+a962 1
+			performWarp( thePlayer.getId(), thePlayer.getLocation(), theHouse.getLocation() );
+d998 1
+a998 1
+			performWarp( thePlayer.getId(), thePlayer.getLocation(), theHouse.getLocation() );
+@
+
+
+1.15
+log
+@Added the code to to take care of spellcasting.
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.14 2004/09/10 02:32:56 rjw2183 Exp $
+d49 2
+a50 1
+	private String[] mercDesc;	
+d68 2
+a69 1
+		myName = null;				
+d99 1
+d253 1
+a253 1
+	 public TextMessage getCurrentRoomDescription()
+d257 10
+a266 2
+		Room temp = (Room)theWorld.get( myState.getPlayerLoc() );
+		switch( temp.getRoomType() )
+d268 3
+a270 1
+			case Room.GRASSY_FIELD:
+d272 1
+a272 3
+			break;
+
+			case Room.WOODS:
+d274 1
+a274 3
+			break;
+			
+			case Room.WATER:
+a275 2
+			break;
+		}
+d277 7
+a283 7
+		if( myState.has( GameState.POND, myState.getPlayerLoc() ) )
+		{
+			if( temp.getRoomType() == Room.GRASSY_FIELD )
+				retVal.addString( pondString );
+			else
+				retVal.addString( pondWoodString );
+		}
+d285 4
+a288 7
+		if( myState.has( GameState.MERCHANT, myState.getPlayerLoc() ) )
+		{
+			Merchant theMerch = (Merchant)myState.get( GameState.MERCHANT, 
+			                                           myState.getPlayerLoc() );
+			retVal.addString( mercDesc[((Merchant)myState.get( GameState.MERCHANT,
+			                           myState.getPlayerLoc())).getType()] );
+		}
+d290 11
+a300 15
+		if( temp.hasHouses() )	
+		{
+			StringBuffer houseString = new StringBuffer( "You see the following houses:\n");
+			Iterator houseIter = temp.getHouses();
+			int i = 0;
+			
+			Vector removeHouses = new Vector();			
+			// this preens houses on the fly.  For every house, it checks to make sure that
+			// the house's location is the same at the currentLoc value.  If it is, it
+			// adds it to the house  If not, it removes te house
+			while( houseIter.hasNext() )
+			{
+				Eoid houseId = (Eoid)houseIter.next();
+				House tempHouse = (House)myState.get( GameState.HOUSE, houseId );
+				if( tempHouse.getLocation().equals( myState.getPlayerLoc() ) )
+d302 13
+a314 9
+					houseString.append( "(" + i + ") " + tempHouse +"\n" );		
+					i++;
+				}
+				else
+					removeHouses.add( houseId );								
+			}				
+			houseIter = removeHouses.iterator();					
+			while( houseIter.hasNext() )
+				temp.removeHouse( (Eoid)houseIter.next() );
+d316 3
+a318 3
+			if( temp.hasHouses() )
+				retVal.addString( houseString, Color.green.darker().darker() );
+		}
+d320 1
+a320 5
+		if( temp.getMobCount() > 0 )
+		{
+
+			Iterator mobs = temp.getMobs();
+			while( mobs.hasNext() )
+d322 2
+a323 2
+				Mob theMob = (Mob)myState.get( GameState.MOB, (MobKey)mobs.next() );
+				if( theMob.isAlive() )
+d325 4
+a328 1
+					if( !theMob.isUnderAttack() )			
+d331 4
+d336 1
+a336 8
+				else
+					retVal.addString( "The corpse of a " + theMob.getName() + " is " +
+					"lying on the ground.", Color.cyan.darker() );
+			}
+		}
+		
+		retVal.addString( exitString, Color.blue.brighter() );
+		retVal.addString( temp.getExitString(), Color.blue.brighter() );
+d338 3
+d669 1
+a669 1
+	 public Iterator getCurrentRoomPlayers()
+d671 8
+a678 1
+	 	return ((Room)theWorld.get( myState.getPlayerLoc() )).getPlayers();
+d684 1
+a684 1
+	 public boolean currentRoomHasPlayers()
+d686 8
+a693 1
+	 	return ((Room)theWorld.get( myState.getPlayerLoc() )).hasPlayers();
+d749 1
+a749 2
+	  * Returns a statud code to inform of the enter was succesful
+	  * and if not, why it was not.
+d752 19
+a770 1
+	public int enterHouse( int houseIndex )
+d772 2
+a773 1
+		return -1;		
+d903 1
+a903 1
+			if( !temp.getId().equals( myState.getPlayerId() ) )							
+d940 75
+d1023 1
+a1023 1
+		out.writeObject( theWorld );
+d1027 1
+d1041 1
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.13 2004/08/16 18:30:07 rjw2183 Exp rjw2183 $
+d738 1
+a738 1
+	 	return -1;
+a853 7
+		data = myState.getCollection( GameState.HOUSE );
+		while( data.hasNext() )
+		{
+			House temp = (House)data.next();
+			((Room)theWorld.get( temp.getLocation() )).addHouse( temp );
+		}	
+		
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.12 2004/08/12 01:21:22 rjw2183 Exp rjw2183 $
+d521 4
+a524 3
+	 * Checks to see if there is a valid mob of the given name
+	 * A valid mob (a) exists and (b) is not underattack
+	 * @@param name The name of the mob
+d526 1
+a526 1
+	public int checkMob( String name )
+d528 1
+a528 1
+		int retVal = 0;
+d532 1
+a532 1
+		while( theMobs.hasNext() )
+d538 1
+a538 2
+				{
+					validName = true;				
+d540 1
+a540 1
+						count++;
+a543 28
+		if( !validName )
+			retVal = NO_SUCH_MOB;
+		else if( count == 0 )
+			retVal = NO_FREE_MOB;
+		return retVal;
+	}
+	
+	/**
+	 * Returns the first free mob of the give name
+	 * @@param: name The name of the mob to attack
+	 */
+	public Mob getFreeMob( String name )
+	{
+		Mob retVal = null;	
+		Iterator theMobs = ((Room)theWorld.get( myState.getPlayerLoc() )).getMobs();
+		boolean found = false;
+		while( theMobs.hasNext() && !found )
+		{
+			Mob theMob = (Mob)myState.get( GameState.MOB, (MobKey)theMobs.next() );
+			if( theMob.getName().equals( name ) )
+			{
+				if( theMob.isAlive() && !theMob.isUnderAttack() )
+				{
+					retVal = theMob;
+					found = true;
+				}	
+			}
+		}	
+d545 1
+@
+
+
+1.12
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.11 2004/08/11 20:06:36 rjw2183 Exp rjw2183 $
+a823 1
+		
+d826 1
+d852 1
+a852 3
+	 {	 				
+		try
+		{
+d902 2
+a903 10
+			if( !temp.getId().equals( myState.getPlayerId() ) )
+			{				
+				((Room)theWorld.get( temp.getLocation() )).addPlayer( temp.getId() );
+			}
+		}
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+			System.exit( 1 );
+d905 1
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.10 2004/07/22 19:33:30 rjw2183 Exp rjw2183 $
+a281 1
+			System.out.println( theMerch.getType() + " " + myState.getPlayerLoc() );
+d669 1
+a669 3
+	 	try
+		{
+		XYloc from = theMove.getLoc( MoveData.FROM );
+d673 1
+a673 6
+		((PlayerCharacter)myState.get( GameState.PLAYER, theMove.getUser() )).updateLocation( to );
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		}
+d923 2
+a924 2
+	{
+	 	if( !player.getId().equals( myState.getPlayerId() ) )
+d927 1
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.9 2004/07/16 18:35:43 rjw2183 Exp rjw2183 $
+d12 1
+d41 1
+a41 1
+	private XYloc currentLoc; // the current location of the player
+d60 1
+a60 2
+		theWorld = new HashMap();
+		currentLoc = new XYloc( 0, 0 );						
+d88 1
+a88 2
+			}
+		currentLoc = new XYloc( 0, 0 );
+d130 1
+a130 1
+		myMapViewer.updateMap( buildMapData(), currentLoc );		
+d180 1
+a180 1
+			System.out.println( "Adding merchant to " + tempLoc );
+d240 3
+a242 3
+	 	currentLoc.x = x;
+		currentLoc.y = y;
+		myMapViewer.updateMap( buildMapData(), currentLoc );
+d254 1
+a254 3
+		Room temp = (Room)theWorld.get( currentLoc );
+		if( temp == null )
+			System.err.println( "ERROR" );
+d270 1
+a270 1
+		if( myState.has( GameState.POND, currentLoc ) )
+d278 5
+a282 1
+		if( myState.has( GameState.MERCHANT, currentLoc ) )
+d284 2
+a285 1
+			                           currentLoc)).getType()] );
+d289 1
+d292 5
+a296 1
+			retVal.addString( "You see the following houses:\n" );
+d301 7
+a307 3
+				retVal.addString( "(" + i + ") " + tempHouse,
+						   Color.green );		
+				i++;
+d309 6
+d358 1
+a358 1
+		if( myState.has( GameState.MERCHANT, currentLoc ) )
+d360 1
+a360 1
+			         currentLoc )).getType();
+d371 1
+a371 1
+		return currentLoc.equals( theLoc );		
+d384 1
+a384 1
+			Room tempRoom = (Room)theWorld.get( currentLoc );
+d387 1
+a387 1
+				XYloc oldLoc = new XYloc( currentLoc );
+d391 1
+a391 1
+						currentLoc.y++;
+d394 1
+a394 1
+						currentLoc.y--;
+d397 1
+a397 1
+						currentLoc.x++;
+d400 1
+a400 1
+						currentLoc.x--;
+d403 2
+a404 2
+				retVal = new UserMove( direction, currentLoc, oldLoc );
+				myMapViewer.updateMap( buildMapData(), currentLoc );
+d445 9
+a453 3
+		String name = ((Mob)myState.get( GameState.MOB, theKey )).getName();
+		
+		return new MobMove( theKey, name, dir, location, oldLoc );		
+d507 1
+a507 1
+		return currentLoc;
+d531 1
+a531 1
+		Iterator theMobs = ((Room)theWorld.get( currentLoc )).getMobs();
+d559 1
+a559 1
+		Iterator theMobs = ((Room)theWorld.get( currentLoc )).getMobs();
+d670 3
+a672 1
+	 	XYloc from = theMove.getLoc( MoveData.FROM );
+d676 6
+a681 1
+		myState.getCache().getPlayer( theMove.getUser() ).updateLocation( to );
+d683 1
+a683 1
+	 
+d694 1
+a694 1
+		myState.getCache().getPlayer( playerId ).updateLocation( to );
+d696 1
+d703 1
+a703 1
+	 	return ((Room)theWorld.get( currentLoc )).getPlayers();
+d711 1
+a711 1
+	 	return ((Room)theWorld.get( currentLoc )).hasPlayers();
+d721 1
+a721 1
+		Room tempRoom = (Room)theWorld.get( currentLoc );
+d723 1
+a723 1
+		if( !myState.has( GameState.POND, currentLoc ) && roomType != Room.WATER )
+d726 1
+a726 1
+			myState.add( GameState.POND, new XYloc( currentLoc ) );
+d782 2
+a783 2
+		int x = currentLoc.x;
+		int y = currentLoc.y;
+d850 1
+a850 2
+		currentLoc = new XYloc( 0, 0 );
+		myMapViewer.updateMap( buildMapData(), currentLoc );
+d861 2
+d907 1
+a907 1
+		data = myState.getCache().getPlayers();
+d910 2
+a911 2
+			PlayerCharacter temp = (PlayerCharacter)data.next();			
+			// Don't the player if he/she is the player controlled by this unit
+d913 1
+d915 7
+d944 1
+a944 1
+			myState.remove( GameState.POND, currentLoc );
+d947 1
+a947 1
+			Eoid tempHouse = ((Room)theWorld.get( currentLoc )).getHouse( index );
+d951 1
+a951 1
+				((Room)theWorld.get( currentLoc )).removeHouse( tempHouse );
+d962 1
+a962 2
+
+		out.writeObject( currentLoc );		
+d975 1
+a975 2
+	{
+		currentLoc = (XYloc)in.readObject();			
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.8 2004/07/06 19:58:30 rjw2183 Exp rjw2183 $
+d458 13
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.7 2004/07/01 19:49:55 rjw2183 Exp rjw2183 $
+d33 3
+a35 3
+	private String grassString;
+	private String woodsString;
+	private String waterString;	
+d39 1
+a39 2
+	
+	private Eoid myPlayerId; // the id of the player whom this world is a part of
+a59 1
+		myPlayerId = new Eoid();
+d62 3
+d75 1
+a75 1
+ 	public World( Eoid id, GameState theState )
+a88 1
+		myPlayerId = id;
+d91 3
+a154 5
+	public Eoid getId()
+	{
+		return myPlayerId;
+	}
+	
+d261 1
+a261 1
+				retVal.addString( grassString );
+d265 1
+a265 1
+				retVal.addString(woodsString );
+d269 1
+a269 1
+				retVal.addString( waterString );
+d311 1
+a311 3
+						Color.yellow.darker() );
+					else
+						retVal.addAttackedMob( theMob.getName(), theMob.getTarget() );
+a468 8
+	/**
+	 * Returns the id of the player associated with this world.
+	 */
+	public Eoid getPlayerId()
+	{
+		return myPlayerId;
+	}
+	
+d480 3
+a482 3
+		for( int x = 0; x < 100; x++ )
+			for( int y = 0; y < 100; y++ )
+				((Room)theWorld.get( new XYloc( x, y) ) ).removePlayer( playerId );
+d551 3
+a553 3
+		grassString = (String)objStream.readObject();
+		woodsString = (String)objStream.readObject();
+		waterString = (String)objStream.readObject();
+d565 8
+d576 1
+a576 1
+	public static World getWorld( GameState theState, String name )
+d588 1
+a588 1
+				tempWorld.myState = theState;
+d605 1
+a605 1
+	 public void saveWorldData()
+d609 3
+a611 1
+		 	String fileName = new String( "states/" + myName + ".dat" );
+d616 1
+d638 1
+d651 1
+d661 1
+a661 1
+	 
+d663 2
+a664 9
+	  * Adds a player to the map
+	  * @@param: location The tile the player is in.
+	  * @@param: thePlayer The player to add.
+	  */
+	 public void addPlayer( XYloc location, Eoid playerId )
+	 {
+	 	((Room)theWorld.get( location )).addPlayer( playerId );
+	 }
+	 
+d700 2
+a775 38
+	/**
+	 * This takes in gamestate object and processes it.
+	 * @@param: theState The state object to process
+	 */
+	 public void processState( GameState theState, MobListener mobList )
+	 throws IOException
+	 {
+		
+	     // The only thing that this function does is place the
+	     // location of the mobs and the houses.  Those are the only
+	     // things (other than player ids) which are stored in the room
+	     // The assumption is that, by this point, the state have been merged
+	     // so this world's information has already been processed
+	     
+	     if( theState == null )
+	     	System.err.println( "State is null." );
+	     Iterator dataValues = theState.getCollection( GameState.MOB );
+	     while( dataValues.hasNext() )
+	     {
+	         Mob tempMob = (Mob)dataValues.next();
+		 tempMob.setList( mobList, this );
+		 Room tempRoom = (Room)theWorld.get( tempMob.getCurrentLocation() );
+		 tempRoom.addMob( tempMob.getKey() );
+	     }
+	     
+	     dataValues = theState.getCollection( GameState.HOUSE );
+	     while( dataValues.hasNext() )
+	     {
+	         House tempHouse = (House)dataValues.next();
+		 if( !myPlayerId.equals( tempHouse.getOwner() ) )
+		 {
+		 	Room tempRoom = (Room)theWorld.get(
+			tempHouse.getLocation() );
+			tempRoom.addHouse( tempHouse );
+		 }
+	     }
+	     myState = theState;
+	 }	
+d777 1
+d810 1
+a810 1
+	  
+d812 91
+d909 1
+a909 1
+		out.writeObject( myPlayerId );
+a923 1
+		myPlayerId = (Eoid)in.readObject();
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.6 2004/06/29 20:00:03 rjw2183 Exp rjw2183 $
+d94 1
+a94 1
+		myName = null;
+d137 1
+a137 1
+		File mobFile = new File( "mobs.dat" );
+d181 1
+d556 1
+a556 1
+		File stringFile = new File( "strings.dat" );
+d580 1
+a580 1
+	public static World getWorld( GameState theState )
+d582 2
+a583 1
+		File worldFile = new File( "world.dat" );
+d613 2
+a614 1
+		 	File worldFile = new File( "world.dat" );
+a787 2
+	   
+	     
+d823 1
+a823 2
+	 public void createWorld()
+	 throws Exception
+a824 1
+			
+d845 2
+a846 4
+			}
+			System.out.println();
+		}
+		myState.setConfig( theConfig );
+d878 2
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.5 2004/06/23 19:57:33 rjw2183 Exp rjw2183 $
+d38 1
+d94 1
+a94 1
+		myName = "default";
+d98 24
+d178 1
+a178 1
+				tempLoc = new XYloc( locPRNG.nextInt( 100 ), locPRNG.nextInt( 100 ) );				
+d220 1
+a220 1
+				XYloc initialLoc = new XYloc( 50, 50 );				
+d275 6
+a280 1
+			retVal.addString( pondString );
+d566 1
+d680 3
+a682 1
+		if( !myState.has( GameState.POND, currentLoc ) )
+d703 2
+a704 2
+		for( int x = 0; x < 100; x++ )
+			for( int y = 0; y < 100; y++ )
+d758 2
+a759 2
+		if( ( loc.x >= 0 && loc.x <= 99 ) &&
+		    ( loc.y >= 0 && loc.y <= 99 ) )
+d782 1
+d784 3
+d818 5
+a822 1
+	 public void createWorld( File theFile )
+d825 6
+a830 6
+		FileReader fr = new FileReader( theFile );
+		BufferedReader reader = new BufferedReader( fr );	
+		myName = reader.readLine();
+		String[] locs = reader.readLine().split( "\\s" );
+		dimX = Integer.parseInt( locs[0] );
+		dimY = Integer.parseInt( locs[1] );
+d832 1
+a834 2
+			String row = reader.readLine();
+			String[] rooms = row.split( "\\s" );
+d839 1
+a839 1
+				if( rooms[x].equals( "w" ) )
+d841 1
+a841 1
+				else if( rooms[x].equals( "t" ) )
+d845 1
+a845 1
+				theWorld.put( key, value );
+d847 1
+d849 2
+d852 1
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.4 2004/06/17 19:19:26 rjw2183 Exp rjw2183 $
+d30 1
+d39 5
+a43 3
+	private Eoid myPlayerId;
+	private XYloc currentLoc;
+	private int myTime;
+d49 3
+a51 3
+	private int[] merchantCount;	
+	private MapViewer myMapViewer;
+	private HashMap myMobs;
+d53 3
+a55 1
+	
+d61 1
+a61 2
+		currentLoc = new XYloc( 0, 0 );				
+		merchantCount = new int[3];
+d63 3
+a65 3
+		mercDesc = new String[3];				
+		myMobs = new HashMap();	
+		initializeStrings();				
+d68 6
+a73 1
+ 	public World( Eoid id )
+d77 4
+a80 2
+		for( int x = 0; x < 100; x++ )
+			for( int y = 0; y < 100; y++ )
+d83 2
+a84 1
+				Room tempRoom = new Room( roomLoc, Room.GRASSY_FIELD );
+d90 1
+a90 2
+		mercDesc = new String[3];
+		myMobs = new HashMap();
+d92 2
+a96 14
+	 * Sets the time of the game
+	 * @@param newTime The time to set it to
+	 */
+	public void setTime( int newTime )
+	{
+		if( 0 <= newTime && newTime <= 5 )
+		{
+			myTime = newTime;
+			if( myMapViewer != null )
+				myMapViewer.updateTime( newTime );
+		}
+	}
+	
+	/**
+d103 1
+a103 2
+		myMapViewer.updateMap( buildMapData(), currentLoc );
+		myMapViewer.updateTime( myTime );
+d105 1
+d141 4
+a144 3
+	 /** 
+	  * helper function used to spawn the merchants
+	  */
+d150 1
+a150 2
+		{
+			Room tempRoom = null;
+d153 1
+a153 2
+				tempLoc = new XYloc( locPRNG.nextInt( 100 ), locPRNG.nextInt( 100 ) );
+				tempRoom = (Room)theWorld.get( tempLoc );
+d155 1
+a155 1
+			while( tempRoom.hasMerchant() );	
+d157 3
+a159 3
+			System.out.println( "Adding merchant to " + tempRoom.getLoc() );
+			tempRoom.addMerchant( temp );
+			tempRoom.refreshMerchantTimer();
+d165 3
+a167 3
+			Room theRoom = (Room)theWorld.get( new XYloc( 0, 0 ) );
+			theRoom.addMerchant( fixedMerchant );
+			theRoom.refreshMerchantTimer();
+d199 2
+a200 3
+				myMobs.put( tempMob.getKey(), tempMob );
+				theRoom.addMob( tempMob.getKey() );
+				
+d212 1
+a212 1
+		((Room)theWorld.get(location)).refreshMerchantTimer();
+d249 1
+a249 1
+		if( temp.hasPond() )
+d252 3
+a254 2
+		if( temp.hasMerchant() )
+			retVal.addString( mercDesc[temp.getMerchantType()] );
+d263 3
+a265 1
+				retVal.addString( "(" + i + ") " + (House)houseIter.next(), 
+d277 1
+a277 1
+				Mob theMob = (Mob)myMobs.get( mobs.next() );
+d313 4
+a316 4
+	 	int retVal = -1;
+		Room tempRoom = (Room)theWorld.get( currentLoc );
+		if( tempRoom.hasMerchant() )
+			retVal = tempRoom.getMerchantType();
+d362 1
+a362 1
+		}
+d398 1
+a398 1
+		if( !((Room)theWorld.get( location ) ).hasMerchant() )
+d401 1
+a401 1
+		String name = ((Mob)myMobs.get( theKey )).getName();
+d422 1
+a422 1
+			Mob theMob = (Mob)myMobs.get( theMove.getKey() );
+d439 1
+a439 1
+		((Mob)myMobs.get( theKey )).restartMovementTimer();
+d479 1
+a479 1
+			Mob theMob = (Mob)myMobs.get( (MobKey)theMobs.next() );
+d508 1
+a508 1
+			Mob theMob = (Mob)myMobs.get( (MobKey)theMobs.next() );
+d548 1
+a548 1
+	public static World getWorld()
+d559 1
+d649 1
+a649 1
+		if( !((Room)theWorld.get( currentLoc )).hasPond() )
+d652 1
+a652 1
+			((Room)theWorld.get( currentLoc )).digPond();
+d662 1
+a662 1
+	  	((Room)theWorld.get( location )).digPond();
+d683 1
+a683 1
+		XYloc houseLoc = theHouse.getLocation();
+d685 1
+a687 41
+	 /**
+	  * Returns a object containing the state of the world at this moment in time
+	  */
+	 public GameState buildState()
+	 {
+	 	GameState retVal = new GameState();
+		for( int x = 0; x < 100; x++ )
+			for( int y = 0; y < 100; y++ )
+			{
+				XYloc temp = new XYloc( x, y );
+				Room tempRoom = (Room)theWorld.get( temp );
+				if( tempRoom.hasPond() )
+					retVal.add( GameState.PONDS, temp);
+				
+				if( tempRoom.hasMerchant() ) 
+				{
+					int merchType = tempRoom.getMerchantType();
+					retVal.add( GameState.MERCHANTS,
+						new Merchant( merchType, temp, null ) ); 				
+				}
+				
+				if( tempRoom.getMobCount() > 0 )
+				{
+					Iterator mobIter = tempRoom.getMobs();
+					while( mobIter.hasNext() )
+					{
+						MobKey tempKey = (MobKey)mobIter.next();						
+						Mob tempMob = (Mob)myMobs.get( tempKey );
+						retVal.add( GameState.MOBS, tempMob );
+					}
+				}
+				
+				if( tempRoom.hasHouses() )
+				{
+					Iterator houseIter = tempRoom.getHouses();
+					while( houseIter.hasNext() )					
+						retVal.add( GameState.HOUSES, (House)houseIter.next() );
+				}
+			}						
+		return retVal;
+	 }
+a699 1
+	 
+d701 1
+a701 3
+	 * Returns the mob at the given location
+	 * @@param loc The location of the mob
+	 * @@param key The key of the mob
+a702 5
+	public Mob getMob( MobKey key )
+	{
+		return (Mob)myMobs.get( key );
+	}
+	
+d748 1
+a748 2
+	 public void processState( GameState theState, MerchantListener merchListener, 
+	 MobListener mobList )
+d750 46
+a795 10
+	       /* PONDS
+		* Optimisic approach here, if the rooom is marked
+		* as having a pond, but it doesn't then the pond
+		* is added.
+		*/
+	        try
+	        {
+			Iterator stateIter; // an iterator used to process state data
+			stateIter = theState.get( GameState.PONDS );
+		 	while( stateIter.hasNext() )
+d797 9
+a805 32
+				XYloc pondLoc = (XYloc)stateIter.next();
+				Room temp = (Room)theWorld.get( pondLoc );
+				if( !temp.hasPond() )
+					temp.digPond();							
+			}	
+		
+		   /**
+		    * Merhants, simply add them.  even if 
+		    * the game had merchants from before, these are over written
+		    */
+		   stateIter = theState.get( GameState.MERCHANTS );
+		   while( stateIter.hasNext() )
+		    {
+		    	Merchant tempMerch = (Merchant)stateIter.next();
+			tempMerch.setListener( merchListener );
+			XYloc merchLoc = tempMerch.getLocation();
+			Room temp = (Room)theWorld.get( merchLoc );
+			temp.addMerchant( tempMerch );
+			temp.refreshMerchantTimer();
+		    }	
+		    
+		   stateIter = theState.get( GameState.MOBS );
+		   while( stateIter.hasNext() )
+		   {
+			Mob tempMob = (Mob)stateIter.next();			
+			tempMob.restartMovementTimer();
+			tempMob.setList( mobList, this );
+			XYloc mobLoc = tempMob.getCurrentLocation();
+			if( !myMobs.containsKey( tempMob.getKey() ) )
+			{
+				((Room)theWorld.get( mobLoc )).addMob( tempMob.getKey() );
+				myMobs.put( tempMob.getKey(), tempMob );
+a806 10
+		   }
+		   
+		   stateIter = theState.get( GameState.HOUSES );
+		   while( stateIter.hasNext() )
+		   {
+		   	House tempHouse = (House)stateIter.next();
+			XYloc houseLoc = tempHouse.getLocation();
+			((Room)theWorld.get( houseLoc )).addHouse( tempHouse );
+		   }
+		   	 	
+d808 2
+a809 6
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		} 
+	  }	
+	
+d821 3
+d836 2
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.3 2004/06/15 19:52:00 rjw2183 Exp $
+d26 3
+d46 1
+a46 2
+	private int[] merchantCount;
+	private MobData myMobData;
+d48 1
+d50 1
+d59 3
+a61 3
+		mercDesc = new String[3];		
+		loadMobData();
+		initializeStrings();			
+d79 1
+a80 2
+		loadMobData();
+			
+d110 1
+a110 1
+	private void loadMobData() 
+d114 1
+d121 1
+a121 1
+			myMobData = (MobData)mobStream.readObject();
+d125 1
+d181 1
+d193 3
+d197 1
+a197 2
+				XYloc initialLoc = new XYloc( 50, 50 );
+				System.out.println( initialLoc );
+d199 1
+a199 1
+				hp, damage, spd, this, theListener );
+d201 3
+a203 1
+				theRoom.addMob( tempMob );
+d235 2
+a236 1
+		
+d253 2
+a254 2
+			 retVal.addString( pondString );
+		
+d273 1
+d277 9
+a285 4
+				Mob theMob = (Mob)mobs.next();
+				if( !theMob.isUnderAttack() )			
+					retVal.addString( "There is a " + theMob.getName() + " here.", 
+					Color.yellow.darker() );
+d287 2
+a288 1
+					retVal.addAttackedMob( theMob.getName(), theMob.getTarget() );
+d398 1
+a398 1
+		if( ((Room)theWorld.get( location ) ).hasMerchant() )
+d400 3
+a402 9
+		String name = null;
+		try
+		{
+			name = myMobData.lookupName( theKey.getType() );
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		}
+d415 2
+a416 1
+		boolean retVal = false;		
+d419 2
+a420 2
+		Mob theMob = ((Room)theWorld.get( oldLoc )).removeMob( theMove.getKey() );
+		if( theMob != null )
+d422 1
+d424 3
+a426 2
+			((Room)theWorld.get( newLoc )).addMob( theMob );	
+			retVal = true;	
+d437 1
+a437 1
+	public void refreshMobTimer( MobKey theKey, XYloc location )
+d439 1
+a439 1
+		((Room)theWorld.get( location )).refreshMobTimer( theKey );
+d473 22
+a494 1
+		return ((Room)theWorld.get( currentLoc )).checkMob( name );
+d503 16
+a518 1
+		return ((Room)theWorld.get( currentLoc )).getFreeMob( name );
+d522 1
+a523 7
+		grassString = new String( "You are in an open, grassy field.  You feel the wind gently blowing on your face." );
+		woodsString = new String( "You are in a woodland area.  All around you see tall trees and hears the noises of " +
+					  "the various animals which live in the forest." );
+		waterString = new String( "You are paddling in an large poll of water. " );
+		pondString = new String( "A small pond has been dug here.  The sun glistens off the calm surface of"
+					 + " the water." );
+		exitString  = new String( "You see exits in the following directions: " );	
+d525 3
+a527 8
+		mercDesc[Merchant.ARMOR] = new String( "There is a small cottage here, where smoke rises from the chimney.  Behind the cottage " +
+					  "is shed, in which you can see a young man pounding on something on a anvil.  Hung all " +
+					  "around the shed are pieces of armor." );
+		mercDesc[Merchant.WEAPONS] = new String( "You see a middle aged man wearing weatherstained clothes sitting on the ground here. "+
+					  "Before him, on a blanket, is an assortment of various weapons.  A large black " +
+					  "yawns lazily next to the blanket." );
+		mercDesc[Merchant.ITEM] = new String( "A young woman is here, dressed in a white robe covered with a brown cloak.  A large bag rests next to her"
+					+ " and you can smell the scents of various herbs and spices." );	
+d529 13
+a541 7
+		broadcastString[Merchant.ARMOR] = new String( "The young man says, \"Come, come, my friends! Come see the pieces of armor I have " +
+						    "forged in my shop!  I guarantee they will provide you with the best protection " +
+						    "money can buy!\"" );
+		broadcastString[Merchant.WEAPONS] = new String( "The man says, \"Come one, come all!  Come see the variety of weapons I have collected,"
+						   + " forged by the finest smiths in the land! No reasonable offer is turned down!\"" );
+		broadcastString[Merchant.ITEM] = new String( "The womans says, \"I have collected a wide variety of herbs and trinkets" +
+						  " from all over.  Come see my wares!\"" ); 		 
+d712 2
+a713 1
+						Mob tempMob = (Mob)mobIter.next();						
+d745 1
+a745 1
+	public Mob getMob( XYloc loc, MobKey key )
+d747 1
+a747 1
+		return ((Room)theWorld.get( loc )).getMob( key );
+d835 1
+a835 1
+			tempMob.setList( mobList );
+d837 5
+a841 1
+			((Room)theWorld.get( mobLoc )).addMob( tempMob );
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.2 2004/06/11 19:16:47 rjw2183 Exp rjw2183 $
+d26 1
+a26 1
+	private Room[][] theWorld; // the array of roosm which makes up the world
+d45 1
+d50 1
+a50 1
+		theWorld = new Room[100][100];
+d63 1
+a63 1
+		theWorld = new Room[100][100];		
+d67 3
+a69 2
+				XYloc roomloc = new XYloc( x, y );				
+				theWorld[x][y] = new Room( roomloc, Room.GRASSY_FIELD );
+d72 1
+a72 1
+			currentLoc = new XYloc( 0, 0 );
+d87 1
+d89 3
+d95 10
+d146 1
+d150 1
+d152 1
+a152 1
+			while( theWorld[tempLoc.x][tempLoc.y].hasMerchant() );	
+d154 3
+a156 3
+			System.out.println( "Adding merchant to " + temp.getLocation() );
+			theWorld[tempLoc.x][tempLoc.y].addMerchant( temp );
+			theWorld[tempLoc.x][tempLoc.y].refreshMerchantTimer();
+d162 3
+a164 2
+			theWorld[0][0].addMerchant( fixedMerchant );
+			theWorld[0][0].refreshMerchantTimer();
+d192 2
+a193 1
+				theWorld[initialLoc.x][initialLoc.y].addMob( tempMob );
+d205 1
+a205 1
+		theWorld[location.x][location.y].refreshMerchantTimer();
+a206 34
+		
+	
+	/**
+	 * Moves the player in the given direction
+	 *
+	 * @@param loc The XYloc of the player.
+	 * @@param direction The direction to move in.	
+	 */
+	 public boolean move( XYloc loc, int direction )
+	 {	 	
+		
+		boolean canMove = theWorld[loc.x][loc.y].checkMove( direction );
+		if( canMove )
+		{
+			switch( direction )
+			{
+				case IntCommand.NORTH:
+					loc.y++;
+				break;
+				case IntCommand.SOUTH:
+					loc.y--;
+				break;
+				case IntCommand.EAST:
+					loc.x++;
+				break;                                                                         
+
+				case IntCommand.WEST:
+					loc.x--;
+				break;
+			}
+		}
+		return canMove;						
+	 }
+	 
+d212 1
+d224 1
+a224 1
+		Room temp = theWorld[currentLoc.x][currentLoc.y];
+d296 3
+a298 2
+		if( theWorld[currentLoc.x][currentLoc.y].hasMerchant() )
+			retVal = theWorld[currentLoc.x][currentLoc.y].getMerchantType();
+d322 2
+a323 1
+			if( theWorld[currentLoc.x][currentLoc.y].checkMove( direction )  == true )
+d342 1
+d380 1
+a380 1
+		if( !theWorld[location.x][location.y].hasMerchant() )
+d406 1
+a406 1
+		Mob theMob = theWorld[oldLoc.x][oldLoc.y].removeMob( theMove.getKey() );
+d410 1
+a410 1
+			theWorld[newLoc.x][newLoc.y].addMob( theMob );	
+d424 1
+a424 1
+		theWorld[location.x][location.y].refreshMobTimer( theKey );
+d448 1
+a448 1
+				theWorld[x][y].removePlayer( playerId );
+d458 1
+a458 1
+		return theWorld[currentLoc.x][currentLoc.y].checkMob( name );
+d467 1
+a467 1
+		return theWorld[currentLoc.x][currentLoc.y].getFreeMob( name );
+d556 2
+a557 2
+		theWorld[from.x][from.y].removePlayer( theMove.getUser() );
+		theWorld[to.x][to.y].addPlayer( theMove.getUser() );
+d568 2
+a569 2
+	 	theWorld[from.x][from.y].removePlayer( playerId );
+		theWorld[to.x][to.y].addPlayer( playerId );
+d577 1
+a577 1
+	 	return theWorld[currentLoc.x][currentLoc.y].getPlayers();
+d587 1
+a587 1
+	 	theWorld[location.x][location.y].addPlayer( playerId );
+d592 1
+a592 1
+	 	return theWorld[currentLoc.x][currentLoc.y].hasPlayers();
+d602 1
+a602 1
+		if( !theWorld[currentLoc.x][currentLoc.y].hasPond() )
+d605 1
+a605 1
+			theWorld[currentLoc.x][currentLoc.y].digPond();
+d615 1
+a615 1
+	  	theWorld[location.x][location.y].digPond();
+d625 1
+a625 1
+				theWorld[x][y].clear();
+d637 1
+a637 1
+		theWorld[houseLoc.x][houseLoc.y].addHouse( theHouse );
+d649 4
+a652 3
+				if( theWorld[x][y].hasPond() )
+					retVal.add( GameState.PONDS,
+					            new XYloc( x, y ) );
+d654 1
+a654 1
+				if( theWorld[x][y].hasMerchant() ) 
+d656 1
+a656 1
+					int merchType = theWorld[x][y].getMerchantType();
+d658 1
+a658 1
+						new Merchant( merchType, new XYloc( x, y ), null ) ); 				
+d661 1
+a661 1
+				if( theWorld[x][y].getMobCount() > 0 )
+d663 1
+a663 1
+					Iterator mobIter = theWorld[x][y].getMobs();
+d666 2
+a667 2
+						Mob temp = (Mob)mobIter.next();						
+						retVal.add( GameState.MOBS, temp );
+d671 1
+a671 1
+				if( theWorld[x][y].hasHouses() )
+d673 1
+a673 1
+					Iterator houseIter = theWorld[x][y].getHouses();
+d700 1
+a700 1
+		return theWorld[loc.x][loc.y].getMob( key );
+d702 42
+d763 3
+a765 2
+				if( !theWorld[pondLoc.x][pondLoc.y].hasPond() )
+					theWorld[pondLoc.x][pondLoc.y].digPond();							
+d778 3
+a780 2
+			theWorld[merchLoc.x][merchLoc.y].addMerchant( tempMerch );
+			theWorld[merchLoc.x][merchLoc.y].refreshMerchantTimer();
+d790 1
+a790 1
+			theWorld[mobLoc.x][mobLoc.y].addMob( tempMob );
+d798 1
+a798 1
+			theWorld[houseLoc.x][houseLoc.y].addHouse( tempHouse );
+d818 1
+a818 3
+		for( int x = 0; x < 100; x++ )
+			for( int y = 0; y < 100; y++ )
+				out.writeObject( theWorld[x][y] );
+d830 1
+a830 3
+		for( int x = 0; x < 100; x++ )
+			for( int y = 0; y < 100; y++ )
+				theWorld[x][y] = (Room)in.readObject();
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.1 2004/06/10 17:00:08 rjw2183 Exp rjw2183 $
+d14 1
+d78 4
+d88 3
+d169 1
+a169 2
+				XYloc initialLoc = new XYloc( locPRNG.nextInt( 100 ), 
+				                              locPRNG.nextInt( 100 ) );
+d233 1
+a233 1
+	 public String getCurrentRoomDescription()
+d236 1
+a236 1
+	 	String outString = null;
+d238 1
+d242 1
+a242 1
+				outString = grassString;
+d246 1
+a246 1
+				outString = woodsString;
+d250 1
+a250 1
+				outString = waterString;
+a253 1
+		StringBuffer desc = new StringBuffer( outString );		
+d255 1
+a255 1
+			desc.append( pondString );
+d258 1
+a258 1
+			desc.append( mercDesc[temp.getMerchantType()] + "\n" );
+d264 1
+a264 1
+			desc.append( "You see the following houses:\n" );
+d267 2
+a268 1
+				desc.append( "(" + i + ") " + (House)houseIter.next() + "\n" );
+d279 5
+a283 1
+				desc.append( "There is a " + theMob.getName() + " here.\n" );
+a285 2
+		desc.append( exitString );
+		desc.append( temp.getExitString() );
+d287 2
+d290 1
+a290 1
+		return desc.toString();		
+d482 1
+a482 1
+		grassString = new String( "You are in an open, grassy field.  You feel the wind gently blowing on your face.\n" );
+d484 2
+a485 2
+					  "the various animals which live in the forest\n." );
+		waterString = new String( "You are paddling in an large poll of water.\n " );
+d487 1
+a487 1
+					 + " the water.\n" );
+d701 32
+a732 23
+	  
+	 /**
+	  * This takes in gamestate object and processes it.
+	  * @@param: theState The state object to process
+	  */
+	  public void processState( GameState theState, MerchantListener merchListener, 
+	  MobListener mobList )
+	  {
+	  	/* PONDS
+		 * Optimisic approach here, if the rooom is marked
+		 * as having a pond, but it doesn't then the pond
+		 * is added.
+		 */
+		try
+		{
+		 Iterator stateIter; // an iterator used to process state data
+		 stateIter = theState.get( GameState.PONDS );
+		 while( stateIter.hasNext() )
+		 {
+		 	XYloc pondLoc = (XYloc)stateIter.next();
+			if( !theWorld[pondLoc.x][pondLoc.y].hasPond() )
+				theWorld[pondLoc.x][pondLoc.y].digPond();							
+		 }	
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+ * @@version: $Id: World.java,v 1.34 2004/06/09 19:51:24 rjw2183 Exp rjw2183 $
+d146 1
+a146 1
+	public void spawnMobs( Game theSession )
+d165 1
+a165 1
+				hp, damage, spd, this, theSession );
+d694 2
+a695 1
+	  public void processState( GameState theState, MerchantListener merchListener, Game theSess )
+d732 1
+a732 1
+			tempMob.setWorld( this );
+@

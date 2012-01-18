@@ -1,0 +1,60 @@
+head	1.1;
+access;
+symbols;
+locks
+	rjw2183:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	2004.06.10.17.05.24;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/**
+ * The house creation command create a new house.
+ * @@author: Robert Whitcomb
+ * @@version: $Id: HouseCreationCommand.java,v 1.2 2004/05/12 14:45:34 rjw2183 Exp rjw2183 $
+ */
+ 
+ package m2mimud.command.special; 
+ import m2mimud.command.StringCommand;
+ import m2mimud.command.Command;
+ 
+ public class HouseCreationCommand
+ extends StringCommand
+ { 	
+	private boolean initialAccess;
+	
+	/** 
+	 * Constructor 
+	 * @@param desc The description of the house
+	 * @@param access The inital access of the house
+	 */
+	public HouseCreationCommand( String desc, boolean access )
+	{
+		super( Command.HOUSE_CREATE, desc );		
+		initialAccess = access;
+	}
+	
+	/** 
+	 * Return the initial accesso of this house
+	 */
+	public boolean getInitialAccess()
+	{
+		return initialAccess;
+	}
+	
+}
+
+@

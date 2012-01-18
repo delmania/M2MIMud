@@ -1,0 +1,854 @@
+head	1.17;
+access;
+symbols;
+locks
+	rjw2183:1.17; strict;
+comment	@# @;
+
+
+1.17
+date	2005.01.12.14.03.17;	author rjw2183;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2004.12.16.16.39.44;	author rjw2183;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2004.12.14.17.22.47;	author rjw2183;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2004.12.10.02.29.05;	author rjw2183;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2004.10.21.02.47.38;	author rjw2183;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2004.09.17.04.04.43;	author rjw2183;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2004.09.10.02.32.49;	author rjw2183;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2004.08.16.18.30.30;	author rjw2183;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2004.07.16.18.35.57;	author rjw2183;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2004.07.06.19.57.41;	author rjw2183;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2004.06.23.19.57.24;	author rjw2183;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.06.16.19.58.35;	author rjw2183;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2004.06.16.00.51.32;	author rjw2183;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2004.06.15.19.51.41;	author rjw2183;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2004.06.11.19.16.08;	author rjw2183;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.06.11.17.22.37;	author rjw2183;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2004.06.10.18.22.40;	author rjw2183;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.17
+log
+@*** empty log message ***
+@
+text
+@/**
+ * The interface class is responsible for controlling the interaction between the
+ * the player and the game. It obtains the user's commands and sends them off to the
+ * game, and it also provides for a way for the game to communicate messages to the user
+ *
+ * @@author: Robert Whitcomb
+ * @@version: $Id: Interface.java,v 1.16 2004/12/16 16:39:44 rjw2183 Exp rjw2183 $
+ */
+ package m2mimud.game;
+
+ import java.io.*;
+ import java.awt.Color;
+ import m2mimud.command.Command;
+ import m2mimud.command.CommandExec;
+ import m2mimud.command.Parser;
+ import m2mimud.state.PlayerCharacter;
+ import javax.swing.SwingUtilities;
+ import m2mimud.state.TextMessage;
+
+ public class Interface
+ implements PlayerCommunicator, CommandExec
+ {
+ 	private String command; // the user's command
+	private BufferedReader inStream; // the reader to read from standard in
+	private Parser theParser; // used to check commands
+	private GameSystem sys;
+	private MudClient wind;
+
+	public Interface()
+	throws Exception
+	{
+		// Set up the stream to read from standard in
+		inStream = new BufferedReader( new InputStreamReader( System.in ) );
+		wind = new MudClient( "M2MIMud", this );
+		theParser = new Parser();
+		sys = new GameSystem( this );
+	}
+
+	/**
+	 * This is a private class created so that the addition of text to the window can be
+	 * done asynchronously
+	 */
+	private class Logger
+	implements Runnable
+	{
+		private String myLine;
+		private Color myColor;
+		private boolean isError;
+		private boolean isCombat;
+
+		public Logger( String theLine, Color chatColor,
+		               boolean isError, boolean isCombat )
+		{
+			myLine = theLine;
+			myColor = chatColor;
+			this.isError = isError;
+			this.isCombat = isCombat;
+		}
+
+		public void run()
+		{
+			try
+			{
+				if( isCombat )
+					wind.printCombatMessage( myLine, myColor, isError );
+				else
+					wind.displayOutput( myLine, myColor, isError );
+			}
+			catch( Exception e )
+			{
+				e.printStackTrace();
+				System.exit( 1 );
+			}
+		}
+	}
+
+	/**
+	 * Prints a message in white text
+	 * @@param theObject The object to print
+	 */
+	public void printMessage( Object theObject )
+	{
+		if( theObject != null )
+                    SwingUtilities.invokeLater(
+                        new Logger( theObject.toString() + "\n", Color.black, false, false ) );
+	}
+
+
+        /**
+         * This prints out a TextMessage object
+         * @@param theMessage The TextMessage object to print
+         */
+        public void printTextMessage(TextMessage theMessage)
+        {
+
+            for( int i = 0; i < theMessage.getSize(); i++ )
+                SwingUtilities.invokeLater(
+					new Logger( theMessage.getMessage( i ), theMessage.getColor( i ),
+                                    false, false ) );
+        }
+	
+	/**
+	 * Prints a message to standard out
+	 * @@param theObject The object to print.
+	 * @@param theColor
+	 */
+	public synchronized void printMessage( Object theObject, Color theColor )
+	{
+			if( theObject != null )
+				SwingUtilities.invokeLater(
+					new Logger( theObject.toString()+"\n", theColor, false, false ) );
+	}
+
+	/**
+	 * Prints an error message to standard error.
+	 * @@param theObject The error message to print.
+	 */
+	public void printError( Object theObject )
+	{
+		if( theObject != null )
+			SwingUtilities.invokeLater(
+                            new Logger( "ERROR[" + theObject.toString() + "]\n",
+				Color.red, true, false ) );
+	}
+
+	/**
+	 * Prints a combat message
+	 * @@param line The line to print
+	 * @@param color The color to paint the text
+	 * @@param player A value which indicates if the player generated this text,
+	 *        or the player's target. If the message is generated by the player's target,
+	 *        the message is bolded.
+	 */
+	public void printCombatMessage( String line, Color theColor, boolean player )
+	{
+		if( line != null )
+			SwingUtilities.invokeLater(
+				new Logger( line, theColor, player, true ) );
+	}
+
+	/**
+	 * Parses a command, and then passes it to the GameSystem object to execute
+	 * @@param command The command string to parse and execute
+	 */
+	public void executeCommand( String command )
+	{
+		Command theCommand = null;
+		if( theParser != null )
+			theCommand = theParser.parse( command );
+
+		if( sys != null )
+		{
+                        try
+			{
+				if( theCommand.getType() != Command.INVALID_COMMAND )
+					sys.execute(  theCommand );
+				else
+					printError( command + ": Invalid Command." );
+			}
+			catch( Exception e )
+			{
+				e.printStackTrace();
+				System.exit( 1 );
+			}
+		}
+
+	}
+
+	/**
+	 * Disables the MudClient.
+	 */
+	public void disable()
+	{
+		wind.setEnabled( false );
+	}
+
+	/**
+	 * Enables the MudClient
+	 */
+	public void enable()
+	{
+		wind.setEnabled( true );
+	}
+
+	/**
+	 * Sets the active player for this session, which means that
+	 * some of the player's information is diplayed in the window
+	 * @@param thePlayer The active player of the game
+	 */
+	public void setActivePlayer( PlayerCharacter thePlayer )
+	{
+	 	final PlayerCharacter myPlayer = thePlayer;
+		SwingUtilities.invokeLater(
+			new Runnable()
+			{
+				public void run()
+				{
+					wind.setPlayer( myPlayer );
+				}
+			}
+		);
+	}
+
+	/**
+	 * Sets the status of the player.  This means whether or not the
+	 * the player has physical balance (from performing a physical
+	 * attack) or mental equilbrium (from performing a spell).
+	 * @@param equi True if the player has mental equilbrium, false
+	 *             otherwise
+	 * @@param balance True if the player has physical balance, false
+	 *        otherwise.
+	 */
+	public void setStatus( boolean equi, boolean balance )
+	{
+		final boolean myEqui = equi;
+		final boolean myBalance = balance;
+		SwingUtilities.invokeLater(
+			new Runnable()
+			{
+				public void run()
+				{
+					wind.setPlayerStatus( myEqui, myBalance );
+				}
+			}
+		);
+	}
+
+	/**
+	 * Sets the name of the state
+	 * @@param name The name of the state.
+	 */
+	public void setStateName( String name )
+	{
+		final String theName = name;
+		SwingUtilities.invokeLater(
+			new Runnable()
+			{
+				public void run()
+				{
+					wind.setStateName( theName );
+				}
+			}
+		);
+	}
+
+	/**
+	 * Clears the output window
+	 */
+	public void clear()
+	{
+		SwingUtilities.invokeLater(
+			new Runnable()
+			{
+				public void run()
+				{
+					wind.clearOutput();
+				}
+			}
+		);
+	}
+
+	/**
+	 * Clears the combat log.
+	 */
+	public void clearCombatLog()
+	{
+		SwingUtilities.invokeLater(
+			new Runnable()
+			{
+				public void run()
+				{
+					wind.clearCombatWindow();
+					wind.setTarget( "" );
+				}
+			}
+		);
+	}
+
+	/**
+	 * Sets the name of the player's target
+	 * @@param name: The name of the target
+	 */
+	public void setTarget( String name )
+	{
+		wind.setTarget( name );
+	}		
+}
+
+
+@
+
+
+1.16
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.15 2004/12/14 17:22:47 rjw2183 Exp rjw2183 $
+d101 1
+d142 2
+a143 1
+	 * This "starts up" the Interace, which means it begins to read and process in input
+d169 1
+a169 1
+ 	/**
+d172 10
+a181 10
+	 public void disable()
+	 {
+	 	wind.setEnabled( false );
+	 }
+
+	 /**
+	  * Enables the MudClient
+	  */
+	 public void enable()
+	 {
+d183 1
+a183 1
+	 }
+d185 5
+a189 5
+	 /**
+	  * Sets the active player fr this session, which means that
+	  * some of the player's information is diplayed in the window
+	  * @@param thePlayer The active player of the game
+	  */
+d205 1
+a205 1
+	 * Sets the stauts of the player.  This means whether or not the
+d286 1
+a286 2
+	}
+
+@
+
+
+1.15
+log
+@*** empty log message ***
+@
+text
+@d3 1
+a3 1
+ * the player and the game. It obtains the user's commands and sends them off to the 
+d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.14 2004/12/10 02:29:05 rjw2183 Exp rjw2183 $
+d9 1
+a9 1
+ package m2mimud.game; 
+d18 2
+a19 1
+ 
+d24 1
+a24 1
+	private BufferedReader inStream; // the reader to read from standard in	
+d28 1
+a28 1
+	
+d36 1
+a36 1
+		sys = new GameSystem( this );		
+d38 1
+a38 1
+	
+d40 1
+a40 1
+	 * This is a private class created so that the addition of text to the window can be 
+d50 2
+a51 2
+		
+		public Logger( String theLine, Color chatColor, 
+d59 1
+a59 1
+		
+d65 1
+a65 1
+					wind.printCombatMessage( myLine, myColor, isError );		
+d76 1
+a76 1
+		
+d83 3
+a85 8
+		try
+		{
+			wind.displayOutput( theObject.toString(), Color.black, false );
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		}
+d87 14
+d104 1
+a104 1
+	 * @@param theColor 
+d106 1
+a106 1
+	public synchronized void printMessage( Object theObject, Color theColor )	
+d110 1
+a110 1
+					new Logger( theObject.toString(), theColor, false, false ) );
+d112 1
+a112 1
+	
+d117 1
+a117 1
+	public void printError( Object theObject )	
+d120 2
+a121 2
+			SwingUtilities.invokeLater( 
+                            new Logger( "ERROR[" + theObject.toString() + "]", 
+d124 1
+a124 1
+	
+d129 1
+a129 1
+	 * @@param player A value which indicates if the player generated this text, 
+d139 2
+a140 2
+	 
+	/** 
+d143 2
+a144 2
+	public void executeCommand( String command )	
+	{		
+d147 2
+a148 2
+			theCommand = theParser.parse( command );	
+		
+d150 1
+a150 1
+		{			
+d152 1
+a152 1
+			{				
+d154 1
+a154 1
+					sys.execute(  theCommand );				
+d163 1
+a163 1
+		}	
+d166 1
+a166 1
+	
+d174 1
+a174 1
+	 
+d181 2
+a182 2
+	 } 
+	 
+d201 1
+a201 1
+	
+d204 1
+a204 1
+	 * the player has physical balance (from performing a physical 
+d225 2
+a226 2
+	
+	/**	
+d233 1
+a233 1
+		SwingUtilities.invokeLater( 
+d243 1
+a243 1
+	
+d259 2
+a260 2
+	
+	/** 
+d276 1
+a276 1
+	
+a284 2
+	
+}	
+d286 3
+a288 1
+		
+@
+
+
+1.14
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.13 2004/10/21 02:47:38 rjw2183 Exp $
+d261 1
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.12 2004/09/17 04:04:43 rjw2183 Exp $
+d111 1
+a111 1
+				new Logger( "ERROR[" + theObject.toString() + "]", 
+@
+
+
+1.12
+log
+@started working on casting
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.11 2004/09/10 02:32:49 rjw2183 Exp rjw2183 $
+d137 2
+a138 1
+			theCommand = theParser.parse( command );		
+d140 3
+a142 3
+		{
+			try
+			{
+d265 10
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.10 2004/08/16 18:30:30 rjw2183 Exp rjw2183 $
+d120 1
+a120 1
+	 *        or the player's target. If the message is generated by te player's target,
+@
+
+
+1.10
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.9 2004/07/16 18:35:57 rjw2183 Exp rjw2183 $
+d142 4
+a145 1
+				sys.execute(  theCommand );				
+@
+
+
+1.9
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.8 2004/07/06 19:57:41 rjw2183 Exp rjw2183 $
+d17 1
+d39 38
+d98 3
+a100 8
+		try
+		{
+			wind.displayOutput( theObject.toString(), theColor, false );
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		}
+d109 4
+a112 9
+		try
+		{
+			wind.displayOutput( "ERROR[" + theObject.toString() + "]",
+			Color.red, true );
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		}		
+d125 3
+a127 8
+		try
+		{
+			wind.printCombatMessage( line, theColor, player );
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace();
+		}
+d176 10
+a185 1
+	 	wind.setPlayer( thePlayer );
+d199 11
+a209 1
+		wind.setPlayerStatus( equi, balance );
+d218 10
+a227 1
+		wind.setStateName( name );
+d235 9
+a243 1
+		wind.clearOutput();
+d251 9
+a259 1
+		wind.clearCombatWindow();
+@
+
+
+1.8
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.7 2004/06/23 19:57:24 rjw2183 Exp $
+d169 12
+@
+
+
+1.7
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.6 2004/06/16 19:58:35 rjw2183 Exp $
+d169 5
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.5 2004/06/16 00:51:32 rjw2183 Exp rjw2183 $
+d146 3
+a148 1
+	  * Sets the active Player
+d155 9
+d169 3
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.4 2004/06/15 19:51:41 rjw2183 Exp rjw2183 $
+d157 5
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.3 2004/06/11 19:16:08 rjw2183 Exp rjw2183 $
+d86 20
+a105 1
+	
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.2 2004/06/11 17:22:37 rjw2183 Exp $
+d45 1
+a45 1
+			wind.displayOutput( theObject.toString(), Color.white, false );
+d133 5
+d139 1
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.1 2004/06/10 18:22:40 rjw2183 Exp rjw2183 $
+d38 15
+d54 2
+a55 1
+	 * @@param message The message to print.
+d57 1
+a57 1
+	public synchronized void printMessage( Object theObject )	
+d61 1
+a61 1
+			wind.displayOutput( theObject.toString(), Color.black );
+d71 1
+a71 1
+	 * @@param error The error message to print.
+d77 2
+a78 2
+			wind.displayOutput( "ERROR [" + theObject.toString() + "]",
+			Color.red );
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d7 1
+a7 1
+ * @@version: $Id: Interface.java,v 1.7 2004/06/08 15:12:35 rjw2183 Exp rjw2183 $
+d12 1
+d41 1
+a41 1
+	public synchronized void printMessage( Object theObject )
+d43 8
+a50 1
+		wind.displayOutput( theObject.toString() );
+d57 1
+a57 1
+	public void printError( Object theObject )
+d59 9
+a67 1
+		wind.displayOutput( "ERROR [" + theObject.toString() + "]" );
+@

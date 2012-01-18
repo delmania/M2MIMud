@@ -1,0 +1,6 @@
+echo cp *.dat ~/m2mimud/game1/data/
+cp *.dat ~/m2mimud/game1/data/
+echo cp *.dat ~/m2mimud/game2/data/
+cp *.dat ~/m2mimud/game2/data/
+echo cp *.dat ~/m2mimud/game3/data/
+cp *.dat ~/m2mimud/game3/data/

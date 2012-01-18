@@ -1,0 +1,175 @@
+//******************************************************************************
+//
+// File:    Strokes.java
+// Package: edu.rit.slides.items
+// Unit:    Class edu.rit.slides.items.Strokes
+//
+// This Java source file is copyright (C) 2001-2004 by Alan Kaminsky. All rights
+// reserved. For further information, contact the author, Alan Kaminsky, at
+// ark@cs.rit.edu.
+//
+// This Java source file is part of the M2MI Library ("The Library"). The
+// Library is free software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation; either version 2 of the License, or (at your option) any later
+// version.
+//
+// The Library is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+// details.
+//
+// You may obtain a copy of the GNU Lesser General Public License at
+// http://www.gnu.org/copyleft/lesser.html or by writing to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+//
+//******************************************************************************
+
+package edu.rit.slides.items;
+
+import java.awt.BasicStroke;
+import java.awt.Stroke;
+
+/**
+ * Class Strokes provides operations for creating several common patterns of
+ * drawing strokes.
+ *
+ * @author  Alan Kaminsky
+ * @version 26-Sep-2003
+ */
+public class Strokes
+	{
+
+// Prevent construction.
+
+	private Strokes()
+		{
+		}
+
+// Exported operations.
+
+	/**
+	 * Returns a solid stroke of the given width with square corners and ends.
+	 *
+	 * @param  theWidth  Stroke width.
+	 */
+	public static Stroke solid
+		(double theWidth)
+		{
+		return new BasicStroke
+			((float) theWidth,
+			 BasicStroke.CAP_SQUARE,
+			 BasicStroke.JOIN_MITER,
+			 10.0f);
+		}
+
+	/**
+	 * Returns a dotted stroke of the given width with square dots.
+	 *
+	 * @param  theWidth  Stroke width.
+	 */
+	public static Stroke dotted
+		(double theWidth)
+		{
+		return dashed (theWidth, 1, 1);
+		}
+
+	/**
+	 * Returns a dashed stroke of the given width with square dashes. Each
+	 * dash's length is three times the stroke width. The length of the gap
+	 * between dashes equals the stroke width.
+	 *
+	 * @param  theWidth  Stroke width.
+	 */
+	public static Stroke dashed
+		(double theWidth)
+		{
+		return dashed (theWidth, 3, 1);
+		}
+
+	/**
+	 * Returns a dashed stroke of the given width with square dashes. Each
+	 * dash's length is d times the stroke width. The length of the gap between
+	 * dashes equals g times the stroke width.
+	 *
+	 * @param  theWidth  Stroke width.
+	 * @param  d         Dash length in terms of stroke width.
+	 * @param  g         Gap length in terms of stroke width.
+	 */
+	public static Stroke dashed
+		(double theWidth,
+		 double d,
+		 double g)
+		{
+		return new BasicStroke
+			((float) theWidth,
+			 BasicStroke.CAP_SQUARE,
+			 BasicStroke.JOIN_MITER,
+			 10.0f,
+			 new float[] {(float)((d-1)*theWidth), (float)((g+1)*theWidth)},
+			 0);
+		}
+
+	/**
+	 * Returns a solid stroke of the given width with round corners and ends.
+	 *
+	 * @param  theWidth  Stroke width.
+	 */
+	public static Stroke roundSolid
+		(double theWidth)
+		{
+		return new BasicStroke
+			((float) theWidth,
+			 BasicStroke.CAP_ROUND,
+			 BasicStroke.JOIN_ROUND,
+			 10.0f);
+		}
+
+	/**
+	 * Returns a dotted stroke of the given width with round dots.
+	 *
+	 * @param  theWidth  Stroke width.
+	 */
+	public static Stroke roundDotted
+		(double theWidth)
+		{
+		return roundDashed (theWidth, 1, 1);
+		}
+
+	/**
+	 * Returns a dashed stroke of the given width with rounded dashes. Each
+	 * dash's length is three times the stroke width. The length of the gap
+	 * between dashes equals the stroke width.
+	 *
+	 * @param  theWidth  Stroke width in points.
+	 */
+	public static Stroke roundDashed
+		(double theWidth)
+		{
+		return roundDashed (theWidth, 3, 1);
+		}
+
+	/**
+	 * Returns a dashed stroke of the given width with rounded dashes. Each
+	 * dash's length is d times the stroke width. The length of the gap between
+	 * dashes equals g times the stroke width.
+	 *
+	 * @param  theWidth  Stroke width in points.
+	 * @param  d         Dash length in terms of stroke width.
+	 * @param  g         Gap length in terms of stroke width.
+	 */
+	public static Stroke roundDashed
+		(double theWidth,
+		 double d,
+		 double g)
+		{
+		return new BasicStroke
+			((float) theWidth,
+			 BasicStroke.CAP_ROUND,
+			 BasicStroke.JOIN_ROUND,
+			 10.0f,
+			 new float[] {(float)((d-1)*theWidth), (float)((g+1)*theWidth)},
+			 0);
+		}
+
+	}
